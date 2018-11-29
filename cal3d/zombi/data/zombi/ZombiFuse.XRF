@@ -1,0 +1,10 @@
+<MATERIAL VERSION="1000" NUMMAPS="4">
+    <AMBIENT>0 0 0 0</AMBIENT>
+    <DIFFUSE>255 255 255 255</DIFFUSE>
+    <SPECULAR>255 255 255 0</SPECULAR>
+    <SHININESS>1</SHININESS>
+    <MAP>ZombiFuse_packed0_diffuse.tga</MAP>
+    <MAP>ZombiFuse_packed0_normal.tga</MAP>
+    <MAP>ZombiFuse_packed0_gloss.jpg</MAP>
+    <MAP>ZombiFuse_packed0_specular.jpg</MAP>
+</MATERIAL>

@@ -1,0 +1,10 @@
+<MATERIAL VERSION="1000" NUMMAPS="4">
+    <AMBIENT>0 0 0 0</AMBIENT>
+    <DIFFUSE>255 255 255 255</DIFFUSE>
+    <SPECULAR>255 255 255 0</SPECULAR>
+    <SHININESS>1</SHININESS>
+    <MAP>tiaZombi_packed0_diffuse.jpg</MAP>
+    <MAP>tiaZombi_packed0_specular.jpg</MAP>
+    <MAP>tiaZombi_packed0_gloss.jpg</MAP>
+    <MAP>&lt;none&gt;</MAP>
+</MATERIAL>
