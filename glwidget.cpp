@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include <plyreader.h>
 #include <QTimer>
+#include <cal3Ddemo/demo.h>
 
 
 using namespace std;
@@ -15,7 +16,6 @@ const float maxRotationCamera = 75.0f;
 const float minDistanceCamera = 1.0f;
 const float maxDistanceCamera = 10.0f;
 
-float current_time = 0.0f;
 
 
 GLWidget::GLWidget(QWidget *parent) : QOpenGLWidget(parent), bPolygonFill(true), angleX(0.0f), angleY(0.0f), distance(4.0f)
@@ -46,11 +46,26 @@ GLWidget::~GLWidget()
 
 void GLWidget::initializeGL()
 {
+    std::cout<< " 1. initialize GL" <<std::endl;
 	initializeOpenGLFunctions();
 
-    std::cout<< " 1. initialize GL" <<std::endl;
 
     particleMode = true;
+
+
+
+    //*********************************************
+    //*********timer*******************************
+    //*********************************************
+
+    //create Timer instead of tick
+    //start timer
+    elapsedTimer.start();
+    // keep repainting
+    QTimer *timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(update()));
+    timer->start();
+
 
 
     if(particleMode)
@@ -62,8 +77,8 @@ void GLWidget::initializeGL()
         typedef void (APIENTRY *_glBindVertexArray) (GLuint);
         _glGenVertexArrays glGenVertexArrays;
          _glBindVertexArray glBindVertexArray;
-        glGenVertexArrays = (_glGenVertexArrays) QOpenGLWidget::context()->getProcAddress("glGenVertexArrays");
-        glBindVertexArray = (_glBindVertexArray) QOpenGLWidget::context()->getProcAddress("glBindVertexArray");
+        glGenVertexArrays = _glGenVertexArrays (QOpenGLWidget::context()->getProcAddress("glGenVertexArrays"));
+        glBindVertexArray = _glBindVertexArray (QOpenGLWidget::context()->getProcAddress("glBindVertexArray"));
 
 
 
@@ -71,11 +86,6 @@ void GLWidget::initializeGL()
         //*****************************
         //********** GENERAL **********
         //*****************************
-
-
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
         programGeneral = new QOpenGLShaderProgram();
         programGeneral->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/simpleshader.vert");
         programGeneral->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/simpleshader.frag");
@@ -85,7 +95,7 @@ void GLWidget::initializeGL()
         programGeneral->link();
         if(!programGeneral->isLinked())
         {
-                cout << "Shader program has not linked" << endl << endl << "Log: " << endl << endl << programGeneral->log().toStdString();
+                cout << "Shader program has not linked GENERAL" << endl << endl << "Log: " << endl << endl << programGeneral->log().toStdString();
                 QApplication::quit();
         }
         programGeneral->bind();
@@ -93,8 +103,6 @@ void GLWidget::initializeGL()
         //*****************************
         //********** Planes ***********
         //*****************************
-
-
         float f = floor_y - radius;
         float r = roof_y + radius;
 
@@ -131,53 +139,69 @@ void GLWidget::initializeGL()
         }
 
         //floor
-        //initializePlane(glm::vec3(d, f, -d),glm::vec3(d, f, d),glm::vec3(-d, f, d),glm::vec3(-d, f, -d));
         //right
         initializePlane(glm::vec3(x_max, f, z_min),glm::vec3(x_max, r, z_min),glm::vec3(x_max, r, z_max),glm::vec3(x_max, f, z_max));
-        //initializePlane(glm::vec3(d, f, -d),glm::vec3(d, r, -d),glm::vec3(d, r, d),glm::vec3(d, f, d));
         //front
         initializePlane(glm::vec3(x_max, f, z_max),glm::vec3(x_min, f, z_max),glm::vec3(x_min, r, z_max),glm::vec3(x_max, r, z_max));
-        //initializePlane(glm::vec3(d, f, d),glm::vec3(-d, f, d),glm::vec3(-d, r, d),glm::vec3(d, r, d));
         //left
         initializePlane(glm::vec3(x_min, f, z_min),glm::vec3(x_min, r, z_min),glm::vec3(x_min, r, z_max),glm::vec3(x_min, f, z_max));
-        //initializePlane(glm::vec3(-d, f, -d),glm::vec3(-d, r, -d),glm::vec3(-d, r, d),glm::vec3(-d, f, d));
         //back
         initializePlane(glm::vec3(x_min, f, z_min),glm::vec3(x_max, f, z_min),glm::vec3(x_max, r, z_min),glm::vec3(x_min, r, z_min));
-        //initializePlane(glm::vec3(-d, f, -d),glm::vec3(d, f, -d),glm::vec3(d, r, -d),glm::vec3(-d, r, -d));
 
 
-        //addTriangle
-        initializeTriangle(tri1, tri2, tri3);
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
 
-        generalShaderId = programGeneral->programId();
-
-        glUseProgram(generalShaderId);
-
-        if(particleShaderId != generalShaderId)
-            std::cout << "****** general shader id e particle shader id sono diversi" << std::endl;
-        else
-            std::cout <<" ****** the ids are the same :()" << std::endl;
-
         glUseProgram(0);
         glBindVertexArray(0);
-
         programGeneral->release();
-
-
-
-
-
-
-        //*********************************
-        //**********  PEOPLE  *************
-        //*********************************
 
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
+
+
+        //*************************
+        //*********cal3d***********
+        //*************************
+        loadCal3dModels();
+
+        //*********************************
+        //**********  PEOPLE  *************
+        //*********************************        
+        programPers = new QOpenGLShaderProgram();
+        programPers->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/simpleshader.vert");
+        programPers->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/simpleshader.frag");
+        programPers->bindAttributeLocation("position",0);
+        programPers->bindAttributeLocation("normal",1);
+        programPers->link();
+        if(!programPers->isLinked())
+        {
+                cout << "Shader program has not linked PEOPLE" << endl << endl << "Log: " << endl << endl << program->log().toStdString();
+                QApplication::quit();
+        }
+        programPers->bind();
+
+        std::cout << " the actual person mesh has size not replicated: vertices: " << verticesPers.size()/3 << "  and triangles: " << indicesPers.size()/3 <<  " and normals: " << normalsPers.size()/3 <<std::endl;
+
+        makeCurrent();
+
+        for(int i = 0; i < numOfParts; i++)
+        {
+            if(!personParts[i].init(programPers))
+            {
+                    cout << "Could not create vbo" << endl;
+                    QApplication::quit();
+            }
+
+
+        }
+        programPers->release();
+
+        //*********************************
+        //**********  PARTICLES  **********
+        //*********************************
 
         program = new QOpenGLShaderProgram();
         program->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/particle.vert");
@@ -189,14 +213,11 @@ void GLWidget::initializeGL()
         program->link();
         if(!program->isLinked())
         {
-                cout << "Shader program has not linked" << endl << endl << "Log: " << endl << endl << program->log().toStdString();
+                cout << "Shader program has not linked PARTICLES" << endl << endl << "Log: " << endl << endl << program->log().toStdString();
                 QApplication::quit();
-        }
+        }        glBindVertexArray(vao);
+
         program->bind();
-
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glEnable(GL_DEPTH_TEST);
-
 
        //initialize the quad
         std::cout << "defining the quad" << std::endl;
@@ -230,33 +251,25 @@ void GLWidget::initializeGL()
         glBufferData(GL_ARRAY_BUFFER, sizeof(valueBuffer), &valueBuffer, GL_STATIC_DRAW);
 
 
-
         //*************************
         //*********ANIMATION*******
         //*************************
         initializeAnimation();
 
-        //*************************
-        //*********cal3d***********
-        //*************************
-//        initializeCal3d();
-//        createCal3dModel();
-
-
-
-
-
-        particleShaderId = program->programId();
-        activeId = particleShaderId;
-
+        cout << "Initialize GL after animation" << endl;
 
         glUseProgram(0);
-        program->release();
+        glBindVertexArray(0);
+
+        cout << "Initialize GL after unbind" << endl;
+
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glEnable(GL_DEPTH_TEST);
+
+        cout << "Initialize GL finished" << endl;
 
 
-
-
-
+        doneCurrent();
     }
     else
     {
@@ -289,26 +302,24 @@ void GLWidget::initializeGL()
 void GLWidget::resizeGL(int w, int h)
 {
     std::cout<< " resize GL" <<std::endl;
-
-
 	glViewport(0,0,w,h);
 	setProjection((float)w/h);
 	setModelview();
+
 }
+
+
 
 void GLWidget::paintGL()
 {
 
-    //std::cout<< " 2. paint GL" <<std::endl;
+    //*********************************************
+    //*********timer*******************************
+    //*********************************************
+    float time = float(elapsedTimer.elapsed()/1000.0f);
 
     if(particleMode)
     {
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-
-
         //*****************************
         //********** GENERAL **********
         //*****************************
@@ -337,55 +348,16 @@ void GLWidget::paintGL()
 
             glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         }
-
-
         //set back to fill
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         bPolygonFill = false;
 
         programGeneral->setUniformValue("color", QVector4D(0.9f, 0.8f, 0.6f, 1.0f));
 
-        //*********************************
-        //**********  Triangle  ***********
-        //*********************************
-        if(triangle_on)
-        {
-            for(uint i = 0; i < trianglesVBO.size(); i++)
-            {
-                glEnableVertexAttribArray(0);
-                glBindBuffer(GL_ARRAY_BUFFER,trianglesVBO[i]);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-            }
-        }
-
-
-
-        //unbind
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-
-
-
-        programGeneral->release();
-
-
-
-
-
-
-
-
-
 
         //*********************************
-        //**********  PEOPLE  *************
+        //**********  PARTICLES  **********
         //*********************************
-
-
-//        glUseProgram(particleShaderId);
-//        activeId = particleShaderId;
         program->bind();
 
         for(uint i= 0; i<positions.size(); i= i+3)
@@ -395,15 +367,9 @@ void GLWidget::paintGL()
             par_pos.setY(positions[i+1]);
             par_pos.setZ(positions[i+2]);
 
-
-
-//            program->bind();
             program->setUniformValue("color", QVector4D(0.5f, 0.5f, 0.5f, 1.0f));
-//            glUniform4f(glGetUniformLocation(particleShaderId, "color"), 0.75f, 0.8f, 0.9f, 1.0f);
             program->setUniformValue("particle_pos", par_pos);
-//            glUniform3f(glGetUniformLocation(particleShaderId, "particle_pos"), positions[i], positions[i+1], positions[i+2]);
             program->setUniformValue("radius", radius);
-//            glUniform1f(glGetUniformLocation(particleShaderId, "radius"), radius);
 
             glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
 
@@ -431,101 +397,54 @@ void GLWidget::paintGL()
             glDisableVertexAttribArray(0);
 
         }
-
-
-
-        //*********************************
-        //**********  SPHERE  ************
-        //*********************************
-        //draw the sphere as a big particle
-        enum
-        {
-            VERTICES,
-            VALUE
-        };
-
-        if(sphere_on)
-        {
-            QVector3D center(sphere_center.x, sphere_center.y, sphere_center.z );
-            float rad = sphere_radius + sphere_radius_delta;
-
-            program->setUniformValue("color", QVector4D(0.8f, 0.2f, 0.0f, 1.0f));
-            program->setUniformValue("particle_pos", center);
-            program->setUniformValue("radius", rad);
-
-            glEnableVertexAttribArray(VERTICES);
-            glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
-            glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-            glEnableVertexAttribArray(VALUE);
-            glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
-            glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-            //unbind
-            glBindBuffer(GL_ARRAY_BUFFER,0);
-            glBindBuffer(GL_ARRAY_BUFFER,0);
-
-            glDisableVertexAttribArray(0);
-        }
-
-
-        //*********************************
-        //**********  POSITION DOT  *******
-        //*********************************
-        //it is a red dot the show the new intiali position of the particles, it is itself a particle
-        //and if in velocity mode, also point of the selected direction
-
-        QVector3D dot_pos(pers_initial_position.x, pers_initial_position.y, pers_initial_position.z );
-        float dot_rad = 0.01f;
-
-        program->setUniformValue("color", QVector4D(1.0f, 0.0f, 0.0f, 1.0f));
-        program->setUniformValue("particle_pos", dot_pos);
-        program->setUniformValue("radius", dot_rad);
-
-        glEnableVertexAttribArray(VERTICES);
-        glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
-        glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glEnableVertexAttribArray(VALUE);
-        glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
-        glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-        //unbind
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-
-        glDisableVertexAttribArray(0);
-
-        //velocity direction
-
-        QVector3D dir_pos = dot_pos + QVector3D(pers_i_velocity_x/10.0f,pers_i_velocity_y/10.0f,pers_i_velocity_z/10.0f);
-
-        program->setUniformValue("color", QVector4D(0.0f, 0.0f, 1.0f, 1.0f));
-        program->setUniformValue("particle_pos", dir_pos);
-        program->setUniformValue("radius", dot_rad);
-        glEnableVertexAttribArray(VERTICES);
-        glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
-        glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glEnableVertexAttribArray(VALUE);
-        glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
-        glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-        //unbind
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-        glDisableVertexAttribArray(0);
-
-
-
-
-
         program->release();
 
+        //*********************************
+        //**********  PEOPLE  *************
+        //*********************************
 
+        programPers->bind();
+        programPers->setUniformValue("bLighting", true);
+        programPers->setUniformValue("color", QVector4D(0.75f, 0.8f, 0.9f, 1.0f));
+
+//        glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+        animateCal3dModel(time);
+
+////        //FUNTIONS DEFINTIONS
+        typedef void (APIENTRY *_glBindVertexArray) (GLuint);
+         _glBindVertexArray glBindVertexArray;
+        glBindVertexArray = _glBindVertexArray (QOpenGLWidget::context()->getProcAddress("glBindVertexArray"));
+
+        for(int m = 0; m < numOfParts; m++)
+            personParts[m].render(*this);
+//        glBindVertexArray(vao_Pers);
+
+//        glDrawArrays(GL_TRIANGLES, 0, indicesPers.size());
+
+//        glBindVertexArray(0);
+
+//        enum
+//        {
+//            VERTICES,
+//            NORMALS
+//        };
+
+//        glEnableVertexAttribArray(VERTICES);
+//        glBindBuffer(GL_ARRAY_BUFFER,vboVert_Pers);
+//        glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+//        glEnableVertexAttribArray(NORMALS);
+//        glBindBuffer(GL_ARRAY_BUFFER,vboNorm_Pers);
+//        glVertexAttribPointer(NORMALS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+//        glDrawArrays(GL_TRIANGLES, 0, 4);
+
+//        programPers->release();
+
+        //unbind
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+        glDisableVertexAttribArray(0);
+        glBindVertexArray(vao);
 
 
     }
@@ -548,7 +467,7 @@ void GLWidget::paintGL()
             mesh.render(*this);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             glDisable(GL_POLYGON_OFFSET_FILL);
-            program->setUniformValue("color", QVector4D(0.05, 0.05, 0.15, 1.0));
+            program->setUniformValue("color", QVector4D(0.05f, 0.05f, 0.15f, 1.0));
         }
 
 
@@ -558,6 +477,7 @@ void GLWidget::paintGL()
 
 
         program->release();
+
 
     }
 }
@@ -597,7 +517,7 @@ void GLWidget::setProjection(float aspect)
 
 	QMatrix4x4 projectionMatrix;
 
-	projectionMatrix.perspective(60, aspect, 0.01, 100.0);
+    projectionMatrix.perspective(60, aspect, 0.01f, 100.0);
     program->bind();
     program->setUniformValue("projection", projectionMatrix);
     program->release();
@@ -606,10 +526,9 @@ void GLWidget::setProjection(float aspect)
     programGeneral->setUniformValue("projection", projectionMatrix);
     programGeneral->release();
 
-//    glUseProgram(activeId);
-//    glUniformMatrix4fv(glGetUniformLocation(activeId, "projection"), 1, GL_FALSE, projectionMatrix.data());
-//    glUseProgram(0);
-
+    programPers->bind();
+    programPers->setUniformValue("projection", projectionMatrix);
+    programPers->release();
 }
 
 void GLWidget::setModelview()
@@ -630,12 +549,10 @@ void GLWidget::setModelview()
     programGeneral->setUniformValue("normalMatrix", modelviewMatrix.normalMatrix());
     programGeneral->release();
 
-
-//    glUseProgram(activeId);
-//    glUniformMatrix4fv(glGetUniformLocation(activeId, "modelview"), 1, GL_FALSE, modelviewMatrix.data());
-//    glUniformMatrix4fv(glGetUniformLocation(activeId, "normalMatrix"), 1, GL_FALSE, modelviewMatrix.data());
-//    glUseProgram(0);
-
+    programPers->bind();
+    programPers->setUniformValue("modelview", modelviewMatrix);
+    programPers->setUniformValue("normalMatrix", modelviewMatrix.normalMatrix());
+    programPers->release();
 }
 
 void GLWidget::setPolygonMode(bool bFill)
@@ -695,7 +612,7 @@ void GLWidget::animate()
     if(positions.size() < max_num_of_people )
     {
         if(fountain_mode)
-            prsan.addPerson(num_people_per_frame);
+            prsan.addPerson(int(num_people_per_frame));
         else
             prsan.addPerson(1);
     }
@@ -714,19 +631,19 @@ void GLWidget::initializeAnimation()
     //initialize animation
     prsan = prsanimation(fixed_y_on);
     prsan.setUpdateMode(selected_update_mode);
-    //prsan.setRoomParam(floor_y, cell_dim_param);
     prsan.setRoomParam(floor_y, cell_pos_r, cell_pos_l, cell_pos_b, cell_pos_f);
     prsan.setTriangleParam(tri1,tri2, tri3);
     prsan.setSphereParam(sphere_center, sphere_radius);
     if(num_people_per_frame > max_num_of_people)
-        prsan.setPersonParam(max_num_of_people, pers_lifetime, pers_bouncing);
+        prsan.setPersonParam(int(max_num_of_people), pers_lifetime, pers_bouncing);
     else
-        prsan.setPersonParam(num_people_per_frame, pers_lifetime, pers_bouncing);
+        prsan.setPersonParam(int(num_people_per_frame), pers_lifetime, pers_bouncing);
     prsan.setFountain(pers_initial_position.x, pers_initial_position.y, pers_initial_position.z, pers_fountain_y);
     prsan.setInitialVelocity(pers_i_velocity_x, pers_i_velocity_y, pers_i_velocity_z);
     prsan.setFountainMode(fountain_mode);
     prsan.setGravityPatam(gravity);
     prsan.initializeValues();
+
 
 }
 
@@ -742,70 +659,164 @@ void GLWidget::resetAnimation()
 //******* CAL3D *********************
 //***********************************
 
-void GLWidget::initializeCal3d()
+bool GLWidget::loadCal3dModels()
 {
-    myCoreModel = new CalCoreModel("dummy");
+//ON INIT
+//    modelload = Modelloader();
 
-    //load skeleton
-    myCoreModel->loadCoreSkeleton("/home/al/Documents/Un/animation/lab/2crowdanimation/cal3d/zombi/data/zombi/Skeleton.csf");
+    allModels.clear();
 
-    //load animations
-    idleAnimationId = myCoreModel->loadCoreAnimation("/home/al/Documents/Un/animation/lab/2crowdanimation/cal3d/zombi/data/zombi/Idle.caf");
-    walkAnimationId = myCoreModel->loadCoreAnimation("/home/al/Documents/Un/animation/lab/2crowdanimation/cal3d/zombi/data/zombi/WalkForward.caf");
+    calDemoPath = ":/cal3Ddemo";
+    calDemoPath = "/home/al/Documents/Un/animation/lab/2crowdanimation/cal3Ddemo";
 
-    //load mesh
-    upperBodyMeshId = myCoreModel->loadCoreMesh("hero_upperbody.cmf");
-    lowerBodyMeshId = myCoreModel->loadCoreMesh("hero_lowerbody.cmf");
+    std::string tempPath;
 
-    // load materials
-    upperBodyChainmailMaterialId = myCoreModel->loadCoreMaterial("hero_upperbody_chainmail.crf");
-    upperBodyPlatemailMaterialId = myCoreModel->loadCoreMaterial("hero_upperbody_platemail.crf");
+    // initialize models
+    Modelloader *pModel;
 
+    // load 'cally' model
+    std::cout << "Loading 'cally' model ..." << std::endl;
+
+    pModel = new Modelloader();
+
+
+    if (calDemoPath != "")
+    {
+        tempPath = calDemoPath + "/" + "cally/" ;
+        pModel->setPath( tempPath );
+    }
+
+    if(!pModel->onInit(calDemoPath + "/" + "cally.cfg"))
+    {
+      delete pModel;
+      std::cerr << "Model initialization failed! (cally)" << std::endl;
+      return false;
+    }
+
+    allModels.push_back(pModel);
+
+    std::cout << std::endl;
+
+    // load 'skeleton' model
+    std::cout << "Loading 'skeleton' model ..." << std::endl;
+
+    pModel = new Modelloader();
+
+    if (calDemoPath != "")
+    {
+        tempPath = calDemoPath + "/" + "skeleton/" ;
+        pModel->setPath( tempPath );
+    }
+    if(!pModel->onInit(calDemoPath + "/" + "skeleton.cfg"))
+    {
+      delete pModel;
+      std::cerr << "Model initialization failed! (skeleton)" << std::endl;
+      return false;
+    }
+
+    allModels.push_back(pModel);
+
+    std::cout << std::endl;
+
+    // load 'paladin' model
+    std::cout << "Loading 'paladin' model ..." << std::endl;
+    pModel = new Modelloader();
+
+    if (calDemoPath != "")
+    {
+        tempPath = calDemoPath + "/" + "paladin/" ;
+        pModel->setPath( tempPath );
+    }
+
+    if(!pModel->onInit(calDemoPath + "/" + "paladin.cfg"))
+    {
+      delete pModel;
+      std::cerr << "Model initialization failed! (paladin)" << std::endl;
+      return false;
+    }
+
+    allModels.push_back(pModel);
+
+    std::cout << std::endl;
+
+
+    // we're done
+    std::cout << "Initialization done." << std::endl;
+    std::cout << std::endl;
+
+    std::cout << " all models creted : size = " << allModels.size() << std::endl;
+    std::cout << std::endl;
+
+
+    initializeCal3dModels();
+
+
+    return true;
 }
 
 
-void GLWidget::createCal3dModel()
+void GLWidget::initializeCal3dModels()
 {
-    std::cout << "arrivato sano e salvo qui" << std::endl;
 
-    myModel = new CalModel(myCoreModel);
+    //not_used
+    normalsPers.clear(); // (nx,ny,nz)
+    colorsPers.clear();  // (r,g,b)
 
 
+    verticesPers.clear(); // (x,y,z)
+    indicesPers.clear();
+    numOfParts = 0;
 
-    if(!myModel->attachMesh(upperBodyMeshId))
+    //clear the personParts
+    for ( int i = 0; i < MAX_NUM_PARTS; i ++)
+        personParts->destroy();
+
+    std::cout << "actual model = " << selected_model << "  with state : " << allModels[0]->getState() <<std::endl;
+
+    allModels[selected_model]->onUpdate(0.0f);
+    numOfParts = allModels[selected_model]->initializeRendering(&verticesPers, &indicesPers);
+
+    if((numOfParts != int(verticesPers.size())) || (numOfParts != int(indicesPers.size())) || (indicesPers.size() != verticesPers.size()))
+        std::cerr << "FAILED glwidget : initializedCal3Dmodel sizes: numOfParts: " << numOfParts << " num of Vertices Parts: " << verticesPers.size() << " num of Indices Parts: " << indicesPers.size() << std::endl;
+
+    //adding the created vertices to the personMesh structure
+    for(unsigned int s = 0; s < verticesPers.size(); s++)
     {
-        // error handling ...
-        std::cerr << " mesh not attached correctly " << std::endl;
+        for(unsigned int v = 0; v < verticesPers[s].size(); v++)
+        {
+            personParts[s].addVertex(verticesPers[s][v]);
+        }
     }
 
-
-    if(!myModel->detachMesh(upperBodyMeshId))
+    for(unsigned int s = 0; s < indicesPers.size(); s++)
     {
-
+        for(unsigned int f = 0; f < indicesPers[s].size(); f = f+3)
+        {
+            personParts[s].addTriangle(indicesPers[s][f], indicesPers[s][f+1], indicesPers[s][f+2]);
+        }
     }
-
-    //set level of detail
-    myModel->setLodLevel(0.5f);
-
-
-    // assign a material for each material thread/set pair
-    const int CHAINMAIL_MATERIAL_SET = 0;
-    const int PLATEMAIL_MATERIAL_SET = 1;
-
-    myModel->setMaterialSet(CHAINMAIL_MATERIAL_SET);
-    myModel->getMesh(upperBodyMeshId)->setMaterialSet(PLATEMAIL_MATERIAL_SET);
-
-
 
 }
+
 
 void GLWidget::animateCal3dModel(float elapsedSeconds)
 {
+    verticesPers.clear();
+    allModels[selected_model]->onUpdate(elapsedSeconds);
+    if( numOfParts != allModels[selected_model]->updateVertices(&verticesPers))
+        std::cout << "errore initializazione" << std::endl;
+    for(unsigned int s = 0; s < verticesPers.size(); s++)
+    {
+        personParts[s].clearVertices();
+        for(unsigned int v = 0; v < verticesPers[s].size(); v++)
+        {
+            personParts[s].addVertex(verticesPers[s][v]);
+        }
 
-    myModel->getMixer()->clearCycle(idleAnimationId, 0.3f);
-    myModel->getMixer()->blendCycle(walkAnimationId, 0.8f, 0.3f);
-//    myModel->getMixer()->executeAction(walkAnimationId, 0.3f, 0.3f);
-    myModel->update(elapsedSeconds);
+    }
+
+
+
 
 }
 
@@ -851,29 +862,6 @@ void GLWidget::initializePlane( glm::vec3 rb, glm::vec3 rt, glm::vec3 lt, glm::v
 
 }
 
-void GLWidget::initializeTriangle( glm::vec3 ver1, glm::vec3 ver2, glm::vec3 ver3)
-{
-
-    GLfloat triangleVertices[] =
-    {
-         // Positions
-        ver1.x,  ver1.y, ver1.z,
-        ver2.x,  ver2.y, ver2.z,
-        ver3.x,  ver3.y, ver3.z,
-    };
-    GLuint tempVBO;
-    //position
-    glGenBuffers(1, &tempVBO);
-    //Generate, bind and fill VBO for vertices
-    glBindBuffer(GL_ARRAY_BUFFER, tempVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), &triangleVertices, GL_STATIC_DRAW);
-    trianglesVBO.push_back(tempVBO);
-}
-
-
-
-
-
 
 
 
@@ -890,7 +878,7 @@ void GLWidget::update_radius(float rad)
 }
 void GLWidget::update_radius_int(int rad)
 {
-    radius = (float)rad/100.0f;;
+    radius = float(rad/100.0f);
 }
 
 void GLWidget::update_max_num(int num)
@@ -925,7 +913,7 @@ void GLWidget::update_bouncing(float boun)
 
 void GLWidget::update_updating_mode(int mode)
 {
-    selected_update_mode = (update_modes)mode;
+    selected_update_mode = update_modes(mode);
     initializeAnimation();
 }
 void GLWidget::update_vel(float x_delta, float y_delta, float z_delta)

@@ -31,10 +31,21 @@ TriangleMesh::TriangleMesh() : vboVertices(QOpenGLBuffer::VertexBuffer),
 {
 }
 
+TriangleMesh::~TriangleMesh()
+{
+    destroy();
+}
+
 
 void TriangleMesh::addVertex(const QVector3D &position)
 {
 	vertices.push_back(position);
+}
+int TriangleMesh::clearVertices()
+{
+    int num = int(vertices.size());
+    vertices.clear();
+    return num;
 }
 
 void TriangleMesh::addTriangle(int v0, int v1, int v2)
@@ -178,8 +189,19 @@ void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVecto
 	eboTriangles.bind();
 	eboTriangles.allocate(&perFaceTriangles[0], sizeof(int) * perFaceTriangles.size());
 	eboTriangles.release();
+
+
+//    std::cout << " VBO filled with vertices: " << replicatedVertices.size() << "  noramls : " << normals.size() << "  faces: " << perFaceTriangles.size() << std::endl;
 }
 
 
-
+//getter
+unsigned long TriangleMesh::getTrianglesSize()
+{
+    return triangles.size();
+}
+unsigned long TriangleMesh::getVerticesSize()
+{
+    return vertices.size();
+}
 

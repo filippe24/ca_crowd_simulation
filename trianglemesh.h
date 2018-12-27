@@ -18,9 +18,13 @@ class TriangleMesh
 
 public:
 	TriangleMesh();
+    ~TriangleMesh();
+
+
 
 public:
 	void addVertex(const QVector3D &position);
+    int clearVertices();
 	void addTriangle(int v0, int v1, int v2);
 
 	void buildCube();
@@ -29,6 +33,11 @@ public:
 	void destroy();
 
 	void render(QOpenGLFunctions &gl);
+
+
+    //getter
+    unsigned long getTrianglesSize();
+    unsigned long getVerticesSize();
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);

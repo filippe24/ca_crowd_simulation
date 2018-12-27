@@ -1,0 +1,11 @@
+prefix=/home/al/Documents/Un/animation/part2/lab2/cal3Dlib
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: cal3d
+Description: The character animation library
+Version: 0.11.0
+Requires: 
+Libs: -L${libdir} -lcal3d
+Cflags: -I${includedir} 

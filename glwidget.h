@@ -7,7 +7,12 @@
 #include "trianglemesh.h"
 #include "prsanimation.h"
 #include "groundgrid.h"
-#include<cal3d/cal3d.h>
+//#include<cal3d/cal3d.h>
+
+#include <QElapsedTimer>
+
+#include "cal3Ddemo/modelloader.h"
+
 
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -30,8 +35,8 @@ public:
 
 
     //cal3d functions
-    void initializeCal3d();
-    void createCal3dModel();
+    bool loadCal3dModels();
+    void initializeCal3dModels();
     void animateCal3dModel(float elapsedSeconds);
 
 
@@ -84,11 +89,18 @@ private:
 
 
 private:
+
+    //TIMER
+    QElapsedTimer elapsedTimer;
+    float current_time = 0.0f;
+
+    std::string basicPath = "/home/al/Documents/Un/animation/lab/2crowdanimation/";
+
     bool bPolygonFill, particleMode;
 	float angleX, angleY, distance;
 	QPoint lastMousePos;
 
-    QOpenGLShaderProgram *program, *programGeneral;
+    QOpenGLShaderProgram *program, *programGeneral, *programPers;
 	TriangleMesh mesh;
 
     GLuint quad_vertex_buffer, particles_position_buffer, particles_color_buffer;
@@ -100,14 +112,6 @@ private:
     GLuint activeId;
     GLuint particleShaderId,generalShaderId;
 
-
-    //cal3d
-    CalCoreModel *myCoreModel;
-    CalModel *myModel;
-
-    int idleAnimationId, walkAnimationId;
-    int upperBodyMeshId, lowerBodyMeshId;
-    int upperBodyChainmailMaterialId, upperBodyPlatemailMaterialId;
 
 
     //ground
@@ -142,11 +146,11 @@ private:
     //PEOPLE PARAMETERS
     //radius of PERSON
     bool fixed_y_on = true;
-    float radius = 0.05f;
-    int num_people_per_frame = 10;
+    float radius = 0.2f;
+    unsigned int num_people_per_frame = 10;
     float pers_lifetime = 20.0f;
     float pers_bouncing = 0.8f;
-    int max_num_of_people =  400;
+    unsigned int max_num_of_people =  400;
     glm::vec3 pers_initial_position = glm::vec3(0.0f, 0.3f, 0.0f);
     float pers_fountain_y = 0.0f;
     bool fountain_mode = true;
@@ -165,6 +169,31 @@ private:
     //positions of all the particles in each frame
     std::vector<float> positions;
 
+
+
+
+    //*******************
+    //****cal3d**********
+    //*******************
+    unsigned int selected_model = 2;
+//    Modelloader modelload;
+    std::vector<Modelloader *> allModels;
+    std::string calDemoPath;
+    unsigned int id_currentModel = 2;
+
+
+    vector<vector<QVector3D>> verticesPers; // (x,y,z)
+    vector<float> normalsPers; // (nx,ny,nz)
+    vector<float> colorsPers;  // (r,g,b)
+    vector<vector<int>> indicesPers;
+    int numOfParts;
+
+//    vector<GLuint> vao_Pers;
+//    vector<GLuint> vboVert_Pers, vboIndex_Pers, vboNorm_Pers;
+
+
+    static const int MAX_NUM_PARTS = 50;
+    TriangleMesh personParts[MAX_NUM_PARTS];
 
 
 

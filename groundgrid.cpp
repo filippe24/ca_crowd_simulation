@@ -39,5 +39,6 @@ int groundgrid::getCellType(int c, int r)
         std::cout << "returned value :"<< returned_value << std::endl;
         return returned_value;
     }
+    return -1;
 }
 
