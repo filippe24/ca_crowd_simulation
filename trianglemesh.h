@@ -39,6 +39,8 @@ public:
     unsigned long getTrianglesSize();
     unsigned long getVerticesSize();
 
+    void reloadVertices(QOpenGLShaderProgram *program);
+
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
 	void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);

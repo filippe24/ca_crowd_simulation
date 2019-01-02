@@ -16,9 +16,9 @@ HEADERS += glwidget.h mainwindow.h \
     person.h \
     prsanimation.h \
     groundgrid.h \
-    cal3Ddemo/demo.h \
+#    cal3Ddemo/demo.h \
     cal3Ddemo/global.h \
-    cal3Ddemo/menu.h \
+#    cal3Ddemo/menu.h \
     cal3Ddemo/tga.h \
     cal3Ddemo/modelloader.h
 #    cal3Ddemo/tick.h
@@ -30,9 +30,9 @@ SOURCES += glwidget.cpp main.cpp mainwindow.cpp \
     person.cpp \
     prsanimation.cpp \
     groundgrid.cpp \
-    cal3Ddemo/demo.cpp \
+#    cal3Ddemo/demo.cpp \
 #    cal3Ddemo/main.cpp \
-    cal3Ddemo/menu.cpp \
+#    cal3Ddemo/menu.cpp \
     cal3Ddemo/tga.cpp \
     cal3Ddemo/modelloader.cpp
 #    cal3Ddemo/tick.cpp

@@ -173,8 +173,7 @@ void GLWidget::initializeGL()
         programPers = new QOpenGLShaderProgram();
         programPers->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/simpleshader.vert");
         programPers->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/simpleshader.frag");
-        programPers->bindAttributeLocation("position",0);
-        programPers->bindAttributeLocation("normal",1);
+
         programPers->link();
         if(!programPers->isLinked())
         {
@@ -182,8 +181,6 @@ void GLWidget::initializeGL()
                 QApplication::quit();
         }
         programPers->bind();
-
-        std::cout << " the actual person mesh has size not replicated: vertices: " << verticesPers.size()/3 << "  and triangles: " << indicesPers.size()/3 <<  " and normals: " << normalsPers.size()/3 <<std::endl;
 
         makeCurrent();
 
@@ -256,17 +253,14 @@ void GLWidget::initializeGL()
         //*************************
         initializeAnimation();
 
-        cout << "Initialize GL after animation" << endl;
 
         glUseProgram(0);
         glBindVertexArray(0);
 
-        cout << "Initialize GL after unbind" << endl;
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
 
-        cout << "Initialize GL finished" << endl;
 
 
         doneCurrent();
@@ -312,7 +306,9 @@ void GLWidget::resizeGL(int w, int h)
 
 void GLWidget::paintGL()
 {
-
+    typedef void (APIENTRY *_glBindVertexArray) (GLuint);
+     _glBindVertexArray glBindVertexArray;
+    glBindVertexArray = _glBindVertexArray (QOpenGLWidget::context()->getProcAddress("glBindVertexArray"));
     //*********************************************
     //*********timer*******************************
     //*********************************************
@@ -320,14 +316,23 @@ void GLWidget::paintGL()
 
     if(particleMode)
     {
+
+
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
+
+
+        glBindVertexArray(vao);
+
         //*****************************
         //********** GENERAL **********
         //*****************************
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         programGeneral->bind();
-        activeId = generalShaderId;
 
         programGeneral->setUniformValue("bLighting", bPolygonFill);
 
@@ -354,11 +359,33 @@ void GLWidget::paintGL()
 
         programGeneral->setUniformValue("color", QVector4D(0.9f, 0.8f, 0.6f, 1.0f));
 
+        programGeneral->release();
+
+
+
+
+
+
 
         //*********************************
         //**********  PARTICLES  **********
         //*********************************
+        glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+
         program->bind();
+        enum
+        {
+            VERTICES,
+            VALUE
+        };
+
+        glEnableVertexAttribArray(VERTICES);
+        glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
+        glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glEnableVertexAttribArray(VALUE);
+        glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
+        glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
         for(uint i= 0; i<positions.size(); i= i+3)
         {
@@ -371,80 +398,34 @@ void GLWidget::paintGL()
             program->setUniformValue("particle_pos", par_pos);
             program->setUniformValue("radius", radius);
 
-            glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
-
-            enum
-            {
-                VERTICES,
-                VALUE
-            };
-
-            glEnableVertexAttribArray(VERTICES);
-            glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
-            glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-            glEnableVertexAttribArray(VALUE);
-            glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
-            glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
             glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-
-            //unbind
-            glBindBuffer(GL_ARRAY_BUFFER,0);
-            glBindBuffer(GL_ARRAY_BUFFER,0);
-
-            glDisableVertexAttribArray(0);
-
         }
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+        glBindBuffer(GL_ARRAY_BUFFER,0);
+        glDisableVertexAttribArray(0);
         program->release();
+
+
+        //unbind
 
         //*********************************
         //**********  PEOPLE  *************
         //*********************************
-
         programPers->bind();
         programPers->setUniformValue("bLighting", true);
         programPers->setUniformValue("color", QVector4D(0.75f, 0.8f, 0.9f, 1.0f));
-
-//        glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
         animateCal3dModel(time);
-
-////        //FUNTIONS DEFINTIONS
-        typedef void (APIENTRY *_glBindVertexArray) (GLuint);
-         _glBindVertexArray glBindVertexArray;
-        glBindVertexArray = _glBindVertexArray (QOpenGLWidget::context()->getProcAddress("glBindVertexArray"));
-
         for(int m = 0; m < numOfParts; m++)
             personParts[m].render(*this);
-//        glBindVertexArray(vao_Pers);
+        programPers->release();
 
-//        glDrawArrays(GL_TRIANGLES, 0, indicesPers.size());
 
-//        glBindVertexArray(0);
 
-//        enum
-//        {
-//            VERTICES,
-//            NORMALS
-//        };
-
-//        glEnableVertexAttribArray(VERTICES);
-//        glBindBuffer(GL_ARRAY_BUFFER,vboVert_Pers);
-//        glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-//        glEnableVertexAttribArray(NORMALS);
-//        glBindBuffer(GL_ARRAY_BUFFER,vboNorm_Pers);
-//        glVertexAttribPointer(NORMALS, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-//        glDrawArrays(GL_TRIANGLES, 0, 4);
-
-//        programPers->release();
-
-        //unbind
         glBindBuffer(GL_ARRAY_BUFFER,0);
         glDisableVertexAttribArray(0);
-        glBindVertexArray(vao);
+        glBindVertexArray(0);
 
 
     }
@@ -748,14 +729,14 @@ bool GLWidget::loadCal3dModels()
     std::cout << std::endl;
 
 
-    initializeCal3dModels();
+    initializeCal3dModels(0.0f);
 
 
     return true;
 }
 
 
-void GLWidget::initializeCal3dModels()
+void GLWidget::initializeCal3dModels(float initial_time)
 {
 
     //not_used
@@ -769,11 +750,10 @@ void GLWidget::initializeCal3dModels()
 
     //clear the personParts
     for ( int i = 0; i < MAX_NUM_PARTS; i ++)
-        personParts->destroy();
+        personParts[i].clearVertices();
 
-    std::cout << "actual model = " << selected_model << "  with state : " << allModels[0]->getState() <<std::endl;
-
-    allModels[selected_model]->onUpdate(0.0f);
+    allModels[selected_model]->onUpdate(initial_time);
+    allModels[selected_model]->setScale(0.01f);
     numOfParts = allModels[selected_model]->initializeRendering(&verticesPers, &indicesPers);
 
     if((numOfParts != int(verticesPers.size())) || (numOfParts != int(indicesPers.size())) || (indicesPers.size() != verticesPers.size()))
@@ -796,26 +776,40 @@ void GLWidget::initializeCal3dModels()
         }
     }
 
+    float motion = 0;
+//    allModels[selected_model]->getMotionBlend(&motion);
+    std::cout << "initial TIME = "<< initial_time << std::endl;
+    std::cout << "      selected model at state: " << allModels[selected_model]->getState() << "  and motion blend : " <<motion << std::endl;
+    for (int p=0; p< verticesPers.size(); p++)
+    {
+        cout<<endl;
+        std::cout << "      part s = " << p <<"   mesh with vertices: " << verticesPers[p].size() << " and indices "  << indicesPers[p].size() << std::endl;
+        std::cout << "      number of replicated vertices on personPats: " <<personParts[p].getTrianglesSize() << "  and indices " << personParts[p].getTrianglesSize() << std::endl;
+        cout<<endl;
+    }
 }
 
 
 void GLWidget::animateCal3dModel(float elapsedSeconds)
 {
     verticesPers.clear();
+
     allModels[selected_model]->onUpdate(elapsedSeconds);
     if( numOfParts != allModels[selected_model]->updateVertices(&verticesPers))
         std::cout << "errore initializazione" << std::endl;
-    for(unsigned int s = 0; s < verticesPers.size(); s++)
+    std::cout << std::endl;
+    std::cout << "animation for s = " << numOfParts << " number of parts" << std::endl;
+    for(unsigned int s = 0; s < numOfParts; s++)
     {
         personParts[s].clearVertices();
+
         for(unsigned int v = 0; v < verticesPers[s].size(); v++)
         {
             personParts[s].addVertex(verticesPers[s][v]);
         }
+        personParts[s].reloadVertices(programPers);
 
     }
-
-
 
 
 }

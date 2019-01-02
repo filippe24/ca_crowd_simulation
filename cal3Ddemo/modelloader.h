@@ -41,7 +41,7 @@ protected:
   GLuint m_textureId[32];
   int m_textureCount;
   float m_motionBlend[3];
-  float m_renderScale;
+  float m_renderScale ;
   float m_lodLevel;
   std::string m_path;
 
@@ -74,7 +74,7 @@ public:
   CalModel& getModelReference();
   int initializeRendering(vector<vector<QVector3D> > *verticesReturn, vector<vector<int> > *indicesReturn);
   int updateVertices(vector<vector<QVector3D> > *verticesReturn);
-  float scaleMesh = 0.01f;
+  void setScale(float scale);
 
   GLuint VAOmodel;
   GLuint VAO, VerticesBuffer, FacesBuffer;

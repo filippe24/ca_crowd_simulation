@@ -36,7 +36,7 @@ public:
 
     //cal3d functions
     bool loadCal3dModels();
-    void initializeCal3dModels();
+    void initializeCal3dModels(float initial_time);
     void animateCal3dModel(float elapsedSeconds);
 
 
@@ -175,7 +175,7 @@ private:
     //*******************
     //****cal3d**********
     //*******************
-    unsigned int selected_model = 2;
+    unsigned int selected_model = 1;
 //    Modelloader modelload;
     std::vector<Modelloader *> allModels;
     std::string calDemoPath;

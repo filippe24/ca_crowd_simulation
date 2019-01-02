@@ -105,7 +105,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 		vboVertices.bind();
 	else
 		return false;
-	vboVertices.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    vboVertices.setUsagePattern(QOpenGLBuffer::DynamicDraw);
 	program->enableAttributeArray(0);
 	program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
 
@@ -115,7 +115,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 		vboNormals.bind();
 	else
 		return false;
-	vboNormals.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    vboNormals.setUsagePattern(QOpenGLBuffer::DynamicDraw);
 	program->enableAttributeArray(1);
 	program->setAttributeBuffer(1, GL_FLOAT, 0, 3, 0);
 
@@ -152,6 +152,7 @@ void TriangleMesh::render(QOpenGLFunctions &gl)
 	eboTriangles.bind();
 	gl.glDrawElements(GL_TRIANGLES, triangles.size(), GL_UNSIGNED_INT, 0);
 	vao.release();
+    eboTriangles.release();
 }
 
 void TriangleMesh::buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles)
@@ -205,3 +206,48 @@ unsigned long TriangleMesh::getVerticesSize()
     return vertices.size();
 }
 
+void TriangleMesh::reloadVertices(QOpenGLShaderProgram *program)
+{
+
+
+
+    vector<QVector3D> replicatedVertices, normals;
+//    vector<unsigned int> perFaceTriangles;
+    normals.resize(triangles.size());
+
+
+    for(unsigned int i=0; i<triangles.size(); i+=3)
+    {
+        replicatedVertices.push_back(vertices[triangles[i]]);
+        replicatedVertices.push_back(vertices[triangles[i+1]]);
+        replicatedVertices.push_back(vertices[triangles[i+2]]);
+
+        QVector3D N = QVector3D::crossProduct(vertices[triangles[i+1]] - vertices[triangles[i]], vertices[triangles[i+2]] - vertices[triangles[i]]);
+        N.normalize();
+        normals[i] = N;
+        normals[i+1] = N;
+        normals[i+2] = N;
+    }
+
+
+
+
+    if(vboVertices.isCreated())
+        vboVertices.bind();
+    else
+        std::cout << "*************no created VBO vertices**************" <<std::endl;
+
+
+    //chose between allocate or write??
+    vboVertices.allocate(&replicatedVertices[0], 3 * int(sizeof(float) * replicatedVertices.size()));
+    vboVertices.release();
+
+    if(vboNormals.isCreated())
+        vboNormals.bind();
+    else
+        std::cout << "*************no created vbo normals**************" <<std::endl;
+
+    vboNormals.allocate(&normals[0], 3 * int(sizeof(float) * normals.size()));
+    vboNormals.release();
+
+}

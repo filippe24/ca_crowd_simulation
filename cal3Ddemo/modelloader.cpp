@@ -43,7 +43,7 @@ Modelloader::Modelloader()
   m_motionBlend[2] = 0.3f;
   m_animationCount = 0;
   m_meshCount = 0;
-  m_renderScale = 1.0f;
+  m_renderScale = 0.01f;
   m_lodLevel = 1.0f;
 /* DEBUG-CODE
   Sphere.x = 0.0f;
@@ -158,7 +158,7 @@ GLuint Modelloader::loadTexture(const std::string& strFilename)
      // allocate a temporary buffer to load the texture to
     unsigned char *pBuffer;
     pBuffer = new unsigned char[width * height * depth];
-    if(pBuffer == 0)
+    if(pBuffer == nullptr)
     {
       std::cerr << "Memory allocation for texture '" << strFilename << "' failed." << std::endl;
       return 0;
@@ -524,259 +524,6 @@ void Modelloader::renderBoundingBox()
 }
 
 
-//----------------------------------------------------------------------------//
-// Render the mesh of the model                                               //
-//----------------------------------------------------------------------------//
-
-void Modelloader::renderMesh(bool bWireframe, bool bLight)
-{
-  // get the renderer of the model
-  CalRenderer *pCalRenderer;
-  pCalRenderer = m_calModel->getRenderer();
-
-  // begin the rendering loop
-  if(!pCalRenderer->beginRendering()) return;
-
-  // set wireframe mode if necessary
-  if(bWireframe)
-  {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  }
-
-  // set the global OpenGL states
-  glEnable(GL_DEPTH_TEST);
-  glShadeModel(GL_SMOOTH);
-
-  // set the lighting mode if necessary
-  if(bLight)
-  {
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-  }
-
-  // we will use vertex arrays, so enable them
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_NORMAL_ARRAY);
-
-  // get the number of meshes
-  int meshCount;
-  meshCount = pCalRenderer->getMeshCount();
-
-  // render all meshes of the model
-  int meshId;
-  for(meshId = 0; meshId < meshCount; meshId++)
-  {
-    // get the number of submeshes
-    int submeshCount;
-    submeshCount = pCalRenderer->getSubmeshCount(meshId);
-
-    // render all submeshes of the mesh
-    int submeshId;
-    for(submeshId = 0; submeshId < submeshCount; submeshId++)
-    {
-      // select mesh and submesh for further data access
-      if(pCalRenderer->selectMeshSubmesh(meshId, submeshId))
-      {
-        unsigned char meshColor[4];
-        GLfloat materialColor[4];
-
-        // set the material ambient color
-        pCalRenderer->getAmbientColor(&meshColor[0]);
-        materialColor[0] = meshColor[0] / 255.0f;  materialColor[1] = meshColor[1] / 255.0f; materialColor[2] = meshColor[2] / 255.0f; materialColor[3] = meshColor[3] / 255.0f;
-        glMaterialfv(GL_FRONT, GL_AMBIENT, materialColor);
-
-        // set the material diffuse color
-        pCalRenderer->getDiffuseColor(&meshColor[0]);
-        materialColor[0] = meshColor[0] / 255.0f;  materialColor[1] = meshColor[1] / 255.0f; materialColor[2] = meshColor[2] / 255.0f; materialColor[3] = meshColor[3] / 255.0f;
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, materialColor);
-
-        // set the vertex color if we have no lights
-        if(!bLight)
-        {
-          glColor4fv(materialColor);
-        }
-
-        // set the material specular color
-        pCalRenderer->getSpecularColor(&meshColor[0]);
-        materialColor[0] = meshColor[0] / 255.0f;  materialColor[1] = meshColor[1] / 255.0f; materialColor[2] = meshColor[2] / 255.0f; materialColor[3] = meshColor[3] / 255.0f;
-        glMaterialfv(GL_FRONT, GL_SPECULAR, materialColor);
-
-        // set the material shininess factor
-        float shininess;
-        shininess = 50.0f; //TODO: pCalRenderer->getShininess();
-        glMaterialfv(GL_FRONT, GL_SHININESS, &shininess);
-
-        // get the transformed vertices of the submesh
-        static float meshVertices[30000][3];
-        int vertexCount;
-        vertexCount = pCalRenderer->getVertices(&meshVertices[0][0]);
-
-        // get the transformed normals of the submesh
-        static float meshNormals[30000][3];
-        pCalRenderer->getNormals(&meshNormals[0][0]);
-
-        // get the texture coordinates of the submesh
-        static float meshTextureCoordinates[30000][2];
-        int textureCoordinateCount;
-        textureCoordinateCount = pCalRenderer->getTextureCoordinates(0, &meshTextureCoordinates[0][0]);
-
-        // get the faces of the submesh
-        static CalIndex meshFaces[50000][3];
-        int faceCount;
-        faceCount = pCalRenderer->getFaces(&meshFaces[0][0]);
-
-        // set the vertex and normal buffers
-        glVertexPointer(3, GL_FLOAT, 0, &meshVertices[0][0]);
-        glNormalPointer(GL_FLOAT, 0, &meshNormals[0][0]);
-
-        // set the texture coordinate buffer and state if necessary
-        if((pCalRenderer->getMapCount() > 0) && (textureCoordinateCount > 0))
-        {
-          glEnable(GL_TEXTURE_2D);
-          glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-          glEnable(GL_COLOR_MATERIAL);
-
-          // set the texture id we stored in the map user data
-         // glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)pCalRenderer->getMapUserData(0));
-
-          // set the texture coordinate buffer
-          glTexCoordPointer(2, GL_FLOAT, 0, &meshTextureCoordinates[0][0]);
-          glColor3f(1.0f, 1.0f, 1.0f);
-        }
-
-        // draw the submesh
-        
-        if(sizeof(CalIndex)==2)
-			  glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_SHORT, &meshFaces[0][0]);
-		  else
-			  glDrawElements(GL_TRIANGLES, faceCount * 3, GL_UNSIGNED_INT, &meshFaces[0][0]);
-
-        // disable the texture coordinate state if necessary
-        if((pCalRenderer->getMapCount() > 0) && (textureCoordinateCount > 0))
-        {
-          glDisable(GL_COLOR_MATERIAL);
-          glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-          glDisable(GL_TEXTURE_2D);
-        }
-
-// DEBUG-CODE //////////////////////////////////////////////////////////////////
-/*
-glBegin(GL_LINES);
-glColor3f(1.0f, 1.0f, 1.0f);
-int vertexId;
-for(vertexId = 0; vertexId < vertexCount; vertexId++)
-{
-const float scale = 0.3f;
-  glVertex3f(meshVertices[vertexId][0], meshVertices[vertexId][1], meshVertices[vertexId][2]);
-  glVertex3f(meshVertices[vertexId][0] + meshNormals[vertexId][0] * scale, meshVertices[vertexId][1] + meshNormals[vertexId][1] * scale, meshVertices[vertexId][2] + meshNormals[vertexId][2] * scale);
-}
-glEnd();
-*/
-////////////////////////////////////////////////////////////////////////////////
-      }
-    }
-  }
-
-  // clear vertex array state
-  glDisableClientState(GL_NORMAL_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
-
-  // reset the lighting mode
-  if(bLight)
-  {
-    glDisable(GL_LIGHTING);
-    glDisable(GL_LIGHT0);
-  }
-
-  // reset the global OpenGL states
-  glDisable(GL_DEPTH_TEST);
-
-  // reset wireframe mode if necessary
-  if(bWireframe)
-  {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  }
-
-  // end the rendering
-  pCalRenderer->endRendering();
-}
-
-//----------------------------------------------------------------------------//
-// Render the model                                                           //
-//----------------------------------------------------------------------------//
-
-void Modelloader::onRender()
-{
-  // set global OpenGL states
-  glEnable(GL_DEPTH_TEST);
-  glShadeModel(GL_SMOOTH);
-
-//// DEBUG: CLOTH SIM
-/*
-  static CalVector spherePosition;
-  spherePosition.set(Sphere.x, Sphere.y, Sphere.z);
-  static float sphereRadius = 15.0f;
-
-//  m_calModel->getSpringSystem()->setSphere(spherePosition.x, spherePosition.y, spherePosition.z, sphereRadius);
-
-  glColor3f(1.0f, 1.0f, 1.0f);
-  glBegin(GL_LINE_STRIP);
-    glVertex3f(spherePosition.x + sphereRadius, spherePosition.y, spherePosition.z);
-    glVertex3f(spherePosition.x, spherePosition.y + sphereRadius, spherePosition.z);
-    glVertex3f(spherePosition.x - sphereRadius, spherePosition.y, spherePosition.z);
-    glVertex3f(spherePosition.x, spherePosition.y - sphereRadius, spherePosition.z);
-
-    glVertex3f(spherePosition.x + sphereRadius, spherePosition.y, spherePosition.z);
-    glVertex3f(spherePosition.x, spherePosition.y, spherePosition.z + sphereRadius);
-    glVertex3f(spherePosition.x - sphereRadius, spherePosition.y, spherePosition.z);
-    glVertex3f(spherePosition.x, spherePosition.y, spherePosition.z - sphereRadius);
-
-    glVertex3f(spherePosition.x + sphereRadius, spherePosition.y, spherePosition.z);
-
-    glVertex3f(spherePosition.x, spherePosition.y + sphereRadius, spherePosition.z);
-    glVertex3f(spherePosition.x, spherePosition.y, spherePosition.z + sphereRadius);
-    glVertex3f(spherePosition.x, spherePosition.y - sphereRadius, spherePosition.z);
-    glVertex3f(spherePosition.x, spherePosition.y, spherePosition.z - sphereRadius);
-    glVertex3f(spherePosition.x, spherePosition.y + sphereRadius, spherePosition.z);
-  glEnd();
-*/
-//// DEBUG END
-
-  //CalSkeleton *pCalSkeleton = m_calModel->getSkeleton();
-
-  // Note :
-  // You have to call coreSkeleton.calculateBoundingBoxes(calCoreModel)
-  // during the initialisation (before calModel.create(calCoreModel))
-  // if you want to use bounding boxes.
-
-  m_calModel->getSkeleton()->calculateBoundingBoxes();
-
-  // Note:
-  // Uncomment the next lines if you want to test the experimental collision system.
-  // Also remember that you need to call calculateBoundingBoxes()
-
-  //m_calModel->getSpringSystem()->setForceVector(CalVector(0.0f,0.0f,0.0f));
-  //m_calModel->getSpringSystem()->setCollisionDetection(true);  
-
-  // check if we need to render the skeleton
-  if(theMenu.isSkeleton()==1)
-  {
-    renderSkeleton();
-  }
-  else if(theMenu.isSkeleton()==2)
-  {
-    renderBoundingBox();
-  }
-  
-  // check if we need to render the mesh
-  if(theMenu.isSkeleton()==0 || theMenu.isWireframe())
-  {
-    renderMesh(theMenu.isWireframe(), theMenu.isLight());
-  }
-
-  // clear global OpenGL states
-  glDisable(GL_DEPTH_TEST);
-}
 
 //----------------------------------------------------------------------------//
 // Update the model                                                           //
@@ -943,17 +690,14 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
   // get the number of meshes
   int meshCount;
   meshCount = pCalRenderer->getMeshCount();
-  std::cout << "Total number of meshes :" << meshCount << std::endl;
 
   // render all meshes of the model
   int meshId;
   for(meshId = 0; meshId < meshCount; meshId++)
   {
-    std::cout << "    actual mesh :" << meshId << std::endl;
     // get the number of submeshes
     int submeshCount;
     submeshCount = pCalRenderer->getSubmeshCount(meshId);
-    std::cout << "    number of submeshes :" << submeshCount << std::endl;
 
     num_of_submeshes += submeshCount;
 
@@ -961,7 +705,6 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
     int submeshId;
     for(submeshId = 0; submeshId < submeshCount; submeshId++)
     {
-      std::cout << "    actual submesh :" << submeshId << std::endl;
       // select mesh and submesh for further data access
       if(pCalRenderer->selectMeshSubmesh(meshId, submeshId))
       {
@@ -975,7 +718,6 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
         int vertexCount;
         vertexCount = pCalRenderer->getVertices(&meshVertices[0][0]);
         int checkVertexCount = pCalRenderer->getVertexCount();
-        std::cout << " vertices of the submesh = " << vertexCount << " and " << checkVertexCount << std::endl;
         for( int v = 0; v < vertexCount; v++)
         {
             if(meshVertices[v][0] == 0.0f && meshVertices[v][1] == 0.0f && meshVertices[v][2] == 0.0f)
@@ -983,7 +725,7 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
                 std::cout << "***************vertex i=" << v << " have x: " << meshVertices[v][0] << "  y: " << meshVertices[v][1] << "  y: " << meshVertices[v][2] << std::endl;
             }
 
-            currentVertices.push_back(QVector3D(meshVertices[v][0]*scaleMesh, meshVertices[v][1]*scaleMesh, meshVertices[v][2]*scaleMesh));
+            currentVertices.push_back(QVector3D(meshVertices[v][0]*m_renderScale, meshVertices[v][1]*m_renderScale, meshVertices[v][2]*m_renderScale));
         }
         // get the transformed normals of the submesh
         static float meshNormals[30000][3];
@@ -994,7 +736,6 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
         static CalIndex meshFaces[50000][3];
         int faceCount;
         faceCount = pCalRenderer->getFaces(&meshFaces[0][0]);
-        std::cout << " faces of the submesh = " << faceCount << std::endl;
         for( int f = 0; f < faceCount; f++)
         {
             currentIndices.push_back(meshFaces[f][0]);
@@ -1012,6 +753,15 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
       }
     }
   }
+
+
+  // set initial animation state
+  m_state = STATE_MOTION;
+  m_calModel->getMixer()->blendCycle(m_animationId[STATE_MOTION], m_motionBlend[0], 0.3f);
+  m_calModel->getMixer()->blendCycle(m_animationId[STATE_MOTION + 1], m_motionBlend[1], 0.3f);
+  m_calModel->getMixer()->blendCycle(m_animationId[STATE_MOTION + 2], m_motionBlend[2], 0.3f);
+
+
 
   // end the rendering
   pCalRenderer->endRendering();
@@ -1062,15 +812,13 @@ int Modelloader::updateVertices(vector<vector<QVector3D> > *verticesReturn)
           static float meshVertices[30000][3];
           int vertexCount;
           vertexCount = pCalRenderer->getVertices(&meshVertices[0][0]);
-          int checkVertexCount = pCalRenderer->getVertexCount();
-          std::cout << " vertices of the submesh = " << vertexCount << " and " << checkVertexCount << std::endl;
           for( int v = 0; v < vertexCount; v++)
           {
               if(meshVertices[v][0] == 0.0f && meshVertices[v][1] == 0.0f && meshVertices[v][2] == 0.0f)
               {
                   std::cout << "***************vertex i=" << v << " have x: " << meshVertices[v][0] << "  y: " << meshVertices[v][1] << "  y: " << meshVertices[v][2] << std::endl;
               }
-              currentVertices.push_back(QVector3D(meshVertices[v][0]*scaleMesh, meshVertices[v][1]*scaleMesh, meshVertices[v][2]*scaleMesh));
+              currentVertices.push_back(QVector3D(meshVertices[v][0]*m_renderScale, meshVertices[v][1]*m_renderScale, meshVertices[v][2]*m_renderScale));
 
           }
           verticesReturn->push_back(currentVertices);
@@ -1081,5 +829,12 @@ int Modelloader::updateVertices(vector<vector<QVector3D> > *verticesReturn)
     // end the rendering
     pCalRenderer->endRendering();
 
+
     return num_of_submeshes;
+}
+
+
+void Modelloader::setScale(float scale)
+{
+    m_renderScale = scale;
 }
