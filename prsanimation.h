@@ -20,7 +20,7 @@ public:
 
 
 
-
+    //SETTERS
     void setRoomParam(float f, float c_r, float c_l, float c_b, float c_f);
     void setTriangleParam(glm::vec3 ver1, glm::vec3 ver2, glm::vec3 ver3);
     void setSphereParam(glm::vec3 cent, float rad);
@@ -29,6 +29,10 @@ public:
     void setInitialVelocity(float vx, float vy, float vz);
 
     void setGravityPatam(float grav);
+
+    //GETTER
+    void getVelocity(int pers,float &x, float &y, float &z);
+    void getVelocity(int pers, float &x, float &z);
 
 private:
 

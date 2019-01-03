@@ -22,8 +22,8 @@ private:
     float unit_vel = 10.0f;
 
 private slots:
-	void on_action_Quit_triggered();
-	void on_action_Open_triggered();
+//	void on_action_Quit_triggered();
+//	void on_action_Open_triggered();
 
 
 //    void on_restart_clicked();

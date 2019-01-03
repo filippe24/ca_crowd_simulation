@@ -171,8 +171,8 @@ void GLWidget::initializeGL()
         //**********  PEOPLE  *************
         //*********************************        
         programPers = new QOpenGLShaderProgram();
-        programPers->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/simpleshader.vert");
-        programPers->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/simpleshader.frag");
+        programPers->addShaderFromSourceFile(QOpenGLShader::Vertex, QString::fromStdString(basicPath) + "/shaders/person.vert");
+        programPers->addShaderFromSourceFile(QOpenGLShader::Fragment, QString::fromStdString(basicPath) + "/shaders/person.frag");
 
         programPers->link();
         if(!programPers->isLinked())
@@ -414,11 +414,42 @@ void GLWidget::paintGL()
         //**********  PEOPLE  *************
         //*********************************
         programPers->bind();
-        programPers->setUniformValue("bLighting", true);
         programPers->setUniformValue("color", QVector4D(0.75f, 0.8f, 0.9f, 1.0f));
         animateCal3dModel(time);
-        for(int m = 0; m < numOfParts; m++)
-            personParts[m].render(*this);
+
+        QMatrix4x4 rotation;
+        QVector3D rot_vec = QVector3D(-1.0f, 0.0f, 0.0f);
+        rotation.rotate(90, rot_vec);
+
+
+        //compute angle between standard and direction
+
+        QMatrix4x4 orientation;
+        QVector3D pers_ax = QVector3D(0.0f, 1.0f, 0.0f);
+        QVector3D model_orientation = QVector3D(0.0f, 0.0f, 1.0f);
+
+        for(uint i= 0; i<positions.size(); i= i+3)
+        {
+            float x,z = 0.0f;
+            prsan.getVelocity(i,x,z);
+            QVector3D actual_orientation = QVector3D(x, 0.0, y);
+
+
+            //to do compute the angle between model_orientation and actual_orientation
+            // :(
+
+            QVector3D pers_pos;
+            pers_pos.setX(positions[i]);
+            pers_pos.setY(0.0f - radius );
+            pers_pos.setZ(positions[i+2]);
+
+            programPers->setUniformValue("space_pos", pers_pos);
+            programPers->setUniformValue("rotation", rotation);
+            programPers->setUniformValue("orientation", orientation);
+
+            for(int m = 0; m < numOfParts; m++)
+                personParts[m].render(*this);
+        }
         programPers->release();
 
 
@@ -729,14 +760,14 @@ bool GLWidget::loadCal3dModels()
     std::cout << std::endl;
 
 
-    initializeCal3dModels(0.0f);
+    initializeCal3dModels();
 
 
     return true;
 }
 
 
-void GLWidget::initializeCal3dModels(float initial_time)
+void GLWidget::initializeCal3dModels()
 {
 
     //not_used
@@ -752,8 +783,7 @@ void GLWidget::initializeCal3dModels(float initial_time)
     for ( int i = 0; i < MAX_NUM_PARTS; i ++)
         personParts[i].clearVertices();
 
-    allModels[selected_model]->onUpdate(initial_time);
-    allModels[selected_model]->setScale(0.01f);
+    allModels[selected_model]->setScale(0.005f);
     numOfParts = allModels[selected_model]->initializeRendering(&verticesPers, &indicesPers);
 
     if((numOfParts != int(verticesPers.size())) || (numOfParts != int(indicesPers.size())) || (indicesPers.size() != verticesPers.size()))
@@ -778,7 +808,6 @@ void GLWidget::initializeCal3dModels(float initial_time)
 
     float motion = 0;
 //    allModels[selected_model]->getMotionBlend(&motion);
-    std::cout << "initial TIME = "<< initial_time << std::endl;
     std::cout << "      selected model at state: " << allModels[selected_model]->getState() << "  and motion blend : " <<motion << std::endl;
     for (int p=0; p< verticesPers.size(); p++)
     {
@@ -794,7 +823,12 @@ void GLWidget::animateCal3dModel(float elapsedSeconds)
 {
     verticesPers.clear();
 
-    allModels[selected_model]->onUpdate(elapsedSeconds);
+
+    std::cout <<" elapsed seconds: " << elapsedSeconds << endl;
+    float motionBlend[3] = {0,0,0};
+    allModels[selected_model]->getMotionBlend(motionBlend);
+    std::cout <<" motion blend: " << motionBlend[0] << " " << motionBlend[1] << " " << motionBlend[2] <<" " << motionBlend[3] <<  endl;
+    allModels[selected_model]->onUpdate(elapsedSeconds/1000);
     if( numOfParts != allModels[selected_model]->updateVertices(&verticesPers))
         std::cout << "errore initializazione" << std::endl;
     std::cout << std::endl;

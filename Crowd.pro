@@ -44,7 +44,9 @@ DISTFILES += \
     shaders/particle.frag \
     shaders/particle.vert \
     shaders/basic.frag \
-    shaders/basic.vert
+    shaders/basic.vert \
+    shaders/person.frag \
+    shaders/person.vert
 
 RESOURCES += \
     resources.qrc

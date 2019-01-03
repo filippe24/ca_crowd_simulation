@@ -375,3 +375,25 @@ void prsanimation::setGravityPatam(float grav)
 {
     g_a = grav;
 }
+
+
+
+
+
+
+
+
+void prsanimation::getVelocity(int pers, float &x, float &y, float &z)
+{
+    Person p = current_people[pers];
+    x = p.getVelocity().x;
+    y = p.getVelocity().y;
+    z = p.getVelocity().z;
+}
+
+void prsanimation::getVelocity(int pers, float &x,float &z)
+{
+    Person p = current_people[pers];
+    x = p.getVelocity().x;
+    z = p.getVelocity().z;
+}

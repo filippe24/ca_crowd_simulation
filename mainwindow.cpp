@@ -15,18 +15,18 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-void MainWindow::on_action_Quit_triggered()
-{
-	 QApplication::quit();
-}
+//void MainWindow::on_action_Quit_triggered()
+//{
+//	 QApplication::quit();
+//}
 
 
-void MainWindow::on_action_Open_triggered()
-{
-	QString filename = QFileDialog::getOpenFileName(this, tr("Open PLY"), ".", tr("*.ply"));
+//void MainWindow::on_action_Open_triggered()
+//{
+//	QString filename = QFileDialog::getOpenFileName(this, tr("Open PLY"), ".", tr("*.ply"));
 
-	ui->openGLWidget->loadMesh(filename);
-}
+//	ui->openGLWidget->loadMesh(filename);
+//}
 
 
 //MY FUNCTIONS:

@@ -36,7 +36,7 @@ public:
 
     //cal3d functions
     bool loadCal3dModels();
-    void initializeCal3dModels(float initial_time);
+    void initializeCal3dModels();
     void animateCal3dModel(float elapsedSeconds);
 
 
@@ -150,7 +150,7 @@ private:
     unsigned int num_people_per_frame = 10;
     float pers_lifetime = 20.0f;
     float pers_bouncing = 0.8f;
-    unsigned int max_num_of_people =  400;
+    unsigned int max_num_of_people =  10;
     glm::vec3 pers_initial_position = glm::vec3(0.0f, 0.3f, 0.0f);
     float pers_fountain_y = 0.0f;
     bool fountain_mode = true;
