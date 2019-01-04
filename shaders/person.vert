@@ -6,12 +6,14 @@ uniform mat4 projection, modelview;
 uniform mat3 normalMatrix;
 uniform vec3 space_pos;
 uniform mat4 rotation;
+uniform mat4 orientation;
+
 
 out vec3 vNormal;
 
 void main()
 {
-    vec4 pos = rotation * vec4(position,1.0);
+    vec4 pos = orientation * rotation  * vec4(position,1.0);
     gl_Position = projection * modelview * (pos + vec4(space_pos, 0.0));
     vNormal = normalMatrix * normal;
 }

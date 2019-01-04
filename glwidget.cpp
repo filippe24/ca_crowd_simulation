@@ -415,7 +415,12 @@ void GLWidget::paintGL()
         //*********************************
         programPers->bind();
         programPers->setUniformValue("color", QVector4D(0.75f, 0.8f, 0.9f, 1.0f));
-        animateCal3dModel(time);
+
+        //TO DO : MAKE THE UPDATE DEPENDT ON HOW FAST THE MODEL IS MOVING
+        //or just make everymdoel go at the same speed
+        animateCal3dModel(time-old_time);
+        cout << " time " << time << " and time-old_time " <<(time -old_time) << endl;
+        old_time = time;
 
         QMatrix4x4 rotation;
         QVector3D rot_vec = QVector3D(-1.0f, 0.0f, 0.0f);
@@ -424,19 +429,25 @@ void GLWidget::paintGL()
 
         //compute angle between standard and direction
 
-        QMatrix4x4 orientation;
-        QVector3D pers_ax = QVector3D(0.0f, 1.0f, 0.0f);
-        QVector3D model_orientation = QVector3D(0.0f, 0.0f, 1.0f);
+
+        cout << endl;
 
         for(uint i= 0; i<positions.size(); i= i+3)
         {
+            QMatrix4x4 orientation;
+            QVector3D pers_ax = QVector3D(0.0f, 1.0f, 0.0f);
+            programPers->setUniformValue("color", QVector4D(0.75f, 0.8f, 0.9f, 1.0f));
+            int pers = int((i+0.5f)/3);
             float x,z = 0.0f;
-            prsan.getVelocity(i,x,z);
-            QVector3D actual_orientation = QVector3D(x, 0.0, y);
-
-
-            //to do compute the angle between model_orientation and actual_orientation
-            // :(
+            prsan.getVelocity(pers,x,z);
+            float dot = x*0.0f + z*(1.0f);
+            float det = x*(1.0f) - z*0.0f;
+            float angle = atan2(det, dot);
+            angle = (180.0f*angle)/M_PI;
+//            float angle = atan2(x-0.0f, z+1.0f);
+//            cout << " person :" << i/3 <<" or "<< pers << endl;
+//            cout << " veocity vector x: " << x << ", z: " << z << "   and angle with basic : " << angle << endl;
+            orientation.rotate(angle,pers_ax);
 
             QVector3D pers_pos;
             pers_pos.setX(positions[i]);
@@ -633,7 +644,6 @@ void GLWidget::animate()
 
 
     //animateCal3dModel(current_time);
-    current_time + 0.01f;
 
     update();
 }
@@ -823,16 +833,14 @@ void GLWidget::animateCal3dModel(float elapsedSeconds)
 {
     verticesPers.clear();
 
+    //code for checking the motion blend
+//    float motionBlend[3] = {0,0,0};
+//    allModels[selected_model]->getMotionBlend(motionBlend);
+//    std::cout <<" motion blend: " << motionBlend[0] << " " << motionBlend[1] << " " << motionBlend[2] <<" " << motionBlend[3] <<  endl;
 
-    std::cout <<" elapsed seconds: " << elapsedSeconds << endl;
-    float motionBlend[3] = {0,0,0};
-    allModels[selected_model]->getMotionBlend(motionBlend);
-    std::cout <<" motion blend: " << motionBlend[0] << " " << motionBlend[1] << " " << motionBlend[2] <<" " << motionBlend[3] <<  endl;
-    allModels[selected_model]->onUpdate(elapsedSeconds/1000);
+    allModels[selected_model]->onUpdate(elapsedSeconds);
     if( numOfParts != allModels[selected_model]->updateVertices(&verticesPers))
         std::cout << "errore initializazione" << std::endl;
-    std::cout << std::endl;
-    std::cout << "animation for s = " << numOfParts << " number of parts" << std::endl;
     for(unsigned int s = 0; s < numOfParts; s++)
     {
         personParts[s].clearVertices();

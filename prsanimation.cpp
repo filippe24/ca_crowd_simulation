@@ -47,6 +47,9 @@ std::vector<float> prsanimation::animate_frame()
     {
         Person p = current_people[i];
 
+        //orientation changed bool
+        p.setVelocityChangeBool(false);
+
 
         // simulation loop
         if (p.getLifetime() > 0) {
@@ -77,6 +80,9 @@ std::vector<float> prsanimation::animate_frame()
 
                 if (disant*disact < 0.0f)
                 {
+
+                    //orientation changed bool
+                    p.setVelocityChangeBool(true);
 
                     float b = p.getBouncing();
 
@@ -117,6 +123,8 @@ std::vector<float> prsanimation::animate_frame()
                     if ( t.isInside(p.getCurrentPosition()))
                     {
 
+                        //orientation changed bool
+                        p.setVelocityChangeBool(false);
 
                         float b = p.getBouncing();
 
@@ -155,6 +163,10 @@ std::vector<float> prsanimation::animate_frame()
 
                 if(!inOld and inNew)
                 {
+
+                    //orientation changed bool
+                    p.setVelocityChangeBool(false);
+
                     //computing the intersection
                     glm::vec3 interPoint, interPoint1, interPoint2;
                     float lambda1, lambda2;
@@ -386,14 +398,22 @@ void prsanimation::setGravityPatam(float grav)
 void prsanimation::getVelocity(int pers, float &x, float &y, float &z)
 {
     Person p = current_people[pers];
-    x = p.getVelocity().x;
-    y = p.getVelocity().y;
-    z = p.getVelocity().z;
+    glm::vec3 velocity = p.getVelocity();
+    velocity = glm::normalize(velocity);
+    x = velocity.x;
+    y = velocity.y;
+    z = velocity.z;
 }
 
 void prsanimation::getVelocity(int pers, float &x,float &z)
 {
+//    std::cout << "prsn :numero totale di persone :" << current_people.size() << "  persona selezionata " << pers << std::endl;
     Person p = current_people[pers];
-    x = p.getVelocity().x;
-    z = p.getVelocity().z;
+    glm::vec2 velocity = glm::vec2(p.getVelocity().x, p.getVelocity().z);
+    velocity = glm::normalize(velocity);
+    x = velocity.x;
+    z = velocity.y;
+//    std::cout << "prsn :velocity : x" << x << " and :y " << z << std::endl;
 }
+
+

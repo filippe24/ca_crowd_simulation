@@ -43,6 +43,9 @@ public:
     //fix y
     void setFixedY(bool fix_y, float pos_y);
 
+    void setVelocityChangeBool(bool set);
+    bool isVelocityChanged();
+
 
 
 private:
@@ -57,5 +60,11 @@ private:
 
     bool m_fixed_y;
     float m_fixed_initial_y;
+
+    //boolean to check if the velocity vector changed so the orientation
+    bool m_velocity_chenged = false;
+
+
+
 };
 #endif // PERSON_H

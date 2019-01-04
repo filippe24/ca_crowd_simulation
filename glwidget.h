@@ -92,7 +92,7 @@ private:
 
     //TIMER
     QElapsedTimer elapsedTimer;
-    float current_time = 0.0f;
+    float old_time = 0.0f;
 
     std::string basicPath = "/home/al/Documents/Un/animation/lab/2crowdanimation/";
 
@@ -126,7 +126,7 @@ private:
 
     //update mode euler-semi-verlet
     enum update_modes { euler, semi, verlet};
-    update_modes selected_update_mode = euler;
+    update_modes selected_update_mode = verlet;
 
     //dimension of the room
     float cell_dim_param = 1.0f;
@@ -194,6 +194,9 @@ private:
 
     static const int MAX_NUM_PARTS = 50;
     TriangleMesh personParts[MAX_NUM_PARTS];
+
+
+
 
 
 
