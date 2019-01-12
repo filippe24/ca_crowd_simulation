@@ -460,13 +460,17 @@ void GLWidget::paintGL()
         //****************************
         if(obstacles_on)
         {
+            QMatrix4x4 scale;
+
+            scale.scale(0.5f ,1.0f, 0.5f);
+
             programObstacles->bind();
             programObstacles->setUniformValue("color", QVector4D(0.3f, 0.3f, 0.3f, 1.0f));
             std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getObstaclesPositions();
             for(uint obs = 0; obs < obstacles_poitions.size(); obs++)
             {
                 glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
-                float offset = cell_dim_param/2.0f;
+                float offset =(cell_dim_param)/2.0f;
                 programObstacles->setUniformValue("translation", QVector3D(obs_pos.x + offset ,2*radius, obs_pos.z + offset));
                 meshObstacle.render(*this);
             }
@@ -478,6 +482,7 @@ void GLWidget::paintGL()
         //****************************
         //********  PATH  ************
         //****************************
+        //goal
         if(!crowd_mode)
         {
             programPath->bind();
@@ -488,10 +493,36 @@ void GLWidget::paintGL()
             float offset = cell_dim_param/2.0f;
             programPath->setUniformValue("translation", QVector3D(goal_pos.x + offset, -21.0f, goal_pos.z + offset));
             meshPath.render(*this);
+        }
+        //starting
+        if(!crowd_mode)
+        {
+            programPath->bind();
+            programPath->setUniformValue("color", QVector4D(0.2f, 0.8f, 0.2f, 0.2f));
+            glm::vec3 goal_pos = prsan.ground.getStartPos();
+            float offset = cell_dim_param/2.0f;
+            programPath->setUniformValue("translation", QVector3D(goal_pos.x + offset, -21.0f, goal_pos.z + offset));
+            meshPath.render(*this);
+        }
+        //path
+        if(!crowd_mode)
+        {
+            programPath->bind();
+            programPath->setUniformValue("color", QVector4D(0.1f, 0.6f, 0.9f, 0.2f));
+            std::vector<std::pair<int,int>> path_positions = prsan.ground.getPathPositions();
+            for(uint pth = 0; pth < path_positions.size(); pth++)
+            {
+                glm::vec3 pth_pos = prsan.ground.getCellPosition(path_positions[pth].first,path_positions[pth].second);
+                float offset = cell_dim_param/2.0f;
+                programPath->setUniformValue("translation", QVector3D(pth_pos.x + offset, -21.01f, pth_pos.z + offset));
+                meshPath.render(*this);
+            }
 
         }
 
 
+
+        //following
         for(uint i= 0; i<positions.size(); i= i+3)
         {
             programPath->setUniformValue("color", QVector4D(0.2f, 0.2f, 0.8f, 0.2f));
@@ -704,7 +735,7 @@ void GLWidget::setModelview()
     modelviewMatrixObstacle.translate(0, 0, -distance);
     modelviewMatrixObstacle.rotate(angleX, 1.0f, 0.0f, 0.0f);
     modelviewMatrixObstacle.rotate(angleY, 0.0f, 1.0f, 0.0f);
-    modelviewMatrixObstacle.scale(cell_dim_param,roof_y,cell_dim_param);
+    modelviewMatrixObstacle.scale(cell_dim_param ,roof_y, cell_dim_param );
     programObstacles->bind();
     programObstacles->setUniformValue("modelview", modelviewMatrixObstacle);
     programObstacles->setUniformValue("normalMatrix", modelviewMatrixObstacle.normalMatrix());
@@ -819,7 +850,7 @@ void GLWidget::initializeAnimation()
     prsan.ground.createGrid(ground_columns,ground_rows);
 
     prsan.setCrowdMode(crowd_mode);
-    prsan.setPathMode(18,15,5,5);
+    prsan.setPathMode(goal_cell_x,goal_cell_z,start_cell_x,start_cell_y);
     prsan.setInitialVelocity(pers_i_velocity_x, pers_i_velocity_y, pers_i_velocity_z);
     prsan.setGravityPatam(gravity);
     prsan.initializeValues();

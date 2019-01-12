@@ -349,12 +349,17 @@ void prsanimation::addPerson(int new_person)
 
 
 
-void prsanimation::setPathMode(int ini_x, int ini_z, int goal_x, int goal_y)
+void prsanimation::setPathMode(int goal_x, int goal_z, int ini_x, int ini_z)
 {
     glm::vec3 pos = ground.getCellPosition(ini_x, ini_z);
     initial_x = pos.x;
     initial_z = pos.z;
-    ground.setGoal(goal_x,goal_y);
+    ground.setGoal(goal_x,goal_z);
+    ground.setStart(ini_x, ini_z);
+
+    //TEST
+
+    ground.computeAstar();
 }
 
 void prsanimation::setInitialVelocity(float vx, float vy, float vz)
@@ -494,7 +499,6 @@ void prsanimation::getVelocity(int pers, float &x,float &z)
 
 
 //A * ALGORITHM USAGE
-
 
 
 

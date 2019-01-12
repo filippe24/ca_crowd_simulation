@@ -198,6 +198,16 @@ private:
 
 
 
+    //Path A*
+    int goal_cell_x = 18;
+    int goal_cell_z = 5;
+    int start_cell_x = 1;
+    int start_cell_y = 18;
+
+
+
+
+
 
 };
 
