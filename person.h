@@ -2,6 +2,7 @@
 #define PERSON_H
 
 #include <glm/glm.hpp>
+#include <vector>
 
 
 class Person
@@ -47,6 +48,10 @@ public:
     bool isVelocityChanged();
 
 
+    //A* path finding
+    std::pair<int,int> getGoal();
+    void setGoal(int i, int j);
+
 
 private:
     glm::vec3 m_currentPosition;
@@ -63,6 +68,11 @@ private:
 
     //boolean to check if the velocity vector changed so the orientation
     bool m_velocity_chenged = false;
+
+
+
+    //A* path finding
+    std::pair<int,int> goal;
 
 
 

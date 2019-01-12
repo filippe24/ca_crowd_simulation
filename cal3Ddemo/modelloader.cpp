@@ -720,10 +720,10 @@ int Modelloader::initializeRendering(vector<vector<QVector3D>> *verticesReturn, 
         int checkVertexCount = pCalRenderer->getVertexCount();
         for( int v = 0; v < vertexCount; v++)
         {
-            if(meshVertices[v][0] == 0.0f && meshVertices[v][1] == 0.0f && meshVertices[v][2] == 0.0f)
-            {
-                std::cout << "***************vertex i=" << v << " have x: " << meshVertices[v][0] << "  y: " << meshVertices[v][1] << "  y: " << meshVertices[v][2] << std::endl;
-            }
+//            if(meshVertices[v][0] == 0.0f && meshVertices[v][1] == 0.0f && meshVertices[v][2] == 0.0f)
+//            {
+//                std::cout << "***************vertex i=" << v << " have x: " << meshVertices[v][0] << "  y: " << meshVertices[v][1] << "  y: " << meshVertices[v][2] << std::endl;
+//            }
 
             currentVertices.push_back(QVector3D(meshVertices[v][0]*m_renderScale, meshVertices[v][1]*m_renderScale, meshVertices[v][2]*m_renderScale));
         }
@@ -814,10 +814,10 @@ int Modelloader::updateVertices(vector<vector<QVector3D> > *verticesReturn)
           vertexCount = pCalRenderer->getVertices(&meshVertices[0][0]);
           for( int v = 0; v < vertexCount; v++)
           {
-              if(meshVertices[v][0] == 0.0f && meshVertices[v][1] == 0.0f && meshVertices[v][2] == 0.0f)
-              {
-                  std::cout << "***************vertex i=" << v << " have x: " << meshVertices[v][0] << "  y: " << meshVertices[v][1] << "  y: " << meshVertices[v][2] << std::endl;
-              }
+//              if(meshVertices[v][0] == 0.0f && meshVertices[v][1] == 0.0f && meshVertices[v][2] == 0.0f)
+//              {
+//                  std::cout << "***************vertex i=" << v << " have x: " << meshVertices[v][0] << "  y: " << meshVertices[v][1] << "  y: " << meshVertices[v][2] << std::endl;
+//              }
               currentVertices.push_back(QVector3D(meshVertices[v][0]*m_renderScale, meshVertices[v][1]*m_renderScale, meshVertices[v][2]*m_renderScale));
 
           }

@@ -46,7 +46,11 @@ DISTFILES += \
     shaders/basic.frag \
     shaders/basic.vert \
     shaders/person.frag \
-    shaders/person.vert
+    shaders/person.vert \
+    shaders/obstacle.frag \
+    shaders/obstacle.vert \
+    shaders/path.frag \
+    shaders/path.vert
 
 RESOURCES += \
     resources.qrc

@@ -154,7 +154,7 @@ std::vector<float> prsanimation::animate_frame()
             }
 
             //**********************
-            //**sphere collision*
+            //**sphere collision****
             //**********************
             for (uint s_i = 0; s_i < spheres.size(); s_i++)
             {
@@ -227,7 +227,59 @@ std::vector<float> prsanimation::animate_frame()
                 }
             }
 
+            //**********************
+            //**person collision****
+            //**********************
+            for (uint prs_i = 0; prs_i < current_people.size(); prs_i++)
+            {
+                if(prs_i != i)
+                {
+                    Person other_prs = current_people[prs_i];
+                    glm::vec3 distance_v = other_prs.getCurrentPosition() - p.getCurrentPosition();
+                    float dist = glm::length(distance_v);
+                    if(dist < 2*0.2f)
+                    {
+                        //collision
+                        float b = p.getBouncing();
 
+                        glm::vec3 o_dist_dir = -(glm::normalize(distance_v));
+
+                        //1
+                        glm::vec3 cur_pos = p.getCurrentPosition();
+                        p.setPosition(p.getPreviousPosition());
+
+                        glm::vec3 new_vel = p.getVelocity();
+                        new_vel = -new_vel*o_dist_dir*b;
+                        new_vel = glm::normalize(new_vel)*crowd_vel_multiplier;
+                        p.setVelocity(new_vel);
+
+                        if(current_method == Person::UpdateMethod::Verlet)
+                        {
+                            p.setPreviousPosition(cur_pos);
+
+                        }
+
+                        //2
+//                        glm::vec3 interPoint = p.getCurrentPosition() + o_dist_dir/2.0f;
+//                        glm::vec3 norm_vec = glm::normalize(interPoint - other_prs.getCurrentPosition());
+//                        Plane tang_plane(interPoint, norm_vec);
+
+//                        //bouncing
+//                        glm::vec3 pos = p.getCurrentPosition();
+
+//                        glm::vec3 newPos = (glm::dot(pos,norm_vec) + tang_plane.dconst)*norm_vec;
+//                        p.setPosition(pos.x - (1+b)*newPos.x, pos.y, pos.z - (1+b)*newPos.z);
+
+//                        glm::vec3 vel = p.getVelocity();
+
+//                        glm::vec3 newVel = (glm::dot(vel,norm_vec))*norm_vec;
+//                        p.setVelocity((vel.x - (1+b)*newVel.x), vel.y, (vel.z - (1+b)*newVel.z));
+
+
+
+                    }
+                }
+            }
 
 
             current_people[i] = p;
@@ -254,7 +306,14 @@ void prsanimation::addPerson(int new_person)
 
     for (int i = 0; i < new_person; i++)
     {        
-        Person p1(initial_x, initial_y, initial_z); //initial position of the particle
+        Person p1;
+        float in_x = (rand() % (ground.getColumnDimension()-1) * ground.getCellDim()) - ((ground.getColumnDimension()/2) * ground.getCellDim());
+        float in_z = (rand() % (ground.getRowDimension()-1) * ground.getCellDim()) - ((ground.getRowDimension()/2) * ground.getCellDim());
+
+        if(crowd_b)
+             p1 = Person(in_x, initial_y, in_z);
+        else
+            p1 = Person(initial_x, initial_y, initial_z); //initial position of the particle
         p1.setLifetime(lifetime);
         p1.setBouncing(bouncing_par);
         p1.addForce(0, g_a, 0);
@@ -266,18 +325,23 @@ void prsanimation::addPerson(int new_person)
         if(fixed_y_on)
             p1.setFixedY(fixed_y_on, initial_y);
 
-        if(fountain_b)
+        if(crowd_b)
         {
+
             vx = velocity_x + (((double) rand() / (RAND_MAX))  - 0.5f) ;
-            vy = velocity_y + fountain_y;
+            vy = 0.0;
             vz = velocity_z + (((double) rand() / (RAND_MAX))  - 0.5f);
-            p1.setVelocity(fountain_vel_multiplier*vx, vy, fountain_vel_multiplier*vz);
+            glm::vec3 ini_vel = glm::vec3(vx,vy,vz);
+            ini_vel = glm::normalize(ini_vel);
+            p1.setVelocity(crowd_vel_multiplier*ini_vel);
             current_people.push_back(p1);
         }
         //velocity mode
         else
         {
-            p1.setVelocity(vx, vy, vz);
+            glm::vec3 ini_vel = glm::vec3(vx,vy,vz);
+            ini_vel = glm::normalize(ini_vel);
+            p1.setVelocity(crowd_vel_multiplier*ini_vel);
             current_people.push_back(p1);
         }
     }
@@ -285,22 +349,23 @@ void prsanimation::addPerson(int new_person)
 
 
 
-void prsanimation::setFountain(float x, float y, float z, float fount_y)
+void prsanimation::setPathMode(int ini_x, int ini_z, int goal_x, int goal_y)
 {
-    initial_x = x;
-    initial_y = y;
-    initial_z = z;
-    fountain_y = fount_y;
+    glm::vec3 pos = ground.getCellPosition(ini_x, ini_z);
+    initial_x = pos.x;
+    initial_z = pos.z;
+    ground.setGoal(goal_x,goal_y);
 }
+
 void prsanimation::setInitialVelocity(float vx, float vy, float vz)
 {
     velocity_x = vx;
     velocity_y = vy;
     velocity_z = vz;
 }
-void prsanimation::setFountainMode(bool b)
+void prsanimation::setCrowdMode(bool b)
 {
-    fountain_b = b;
+    crowd_b = b;
 }
 void prsanimation::createPeople()
 {
@@ -415,5 +480,31 @@ void prsanimation::getVelocity(int pers, float &x,float &z)
     z = velocity.y;
 //    std::cout << "prsn :velocity : x" << x << " and :y " << z << std::endl;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+//A * ALGORITHM USAGE
+
+
+
+
+
+
+
+
+
+
+
+
 
 

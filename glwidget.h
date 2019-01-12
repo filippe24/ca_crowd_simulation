@@ -6,7 +6,6 @@
 #include <QOpenGLFunctions>
 #include "trianglemesh.h"
 #include "prsanimation.h"
-#include "groundgrid.h"
 //#include<cal3d/cal3d.h>
 
 #include <QElapsedTimer>
@@ -51,9 +50,7 @@ public:
 
     void update_updating_mode(int mode);
 
-    void update_fountain_vel_y(float vy);
-
-    void setFountainMode(bool b);
+    void setCrwodMode(bool b);
 
     void set_elast_ke(float ke);
     void set_elast_l0(float l0);
@@ -100,8 +97,8 @@ private:
 	float angleX, angleY, distance;
 	QPoint lastMousePos;
 
-    QOpenGLShaderProgram *program, *programGeneral, *programPers;
-	TriangleMesh mesh;
+    QOpenGLShaderProgram *program, *programGeneral, *programPers, *programObstacles, *programPath;
+    TriangleMesh mesh, meshObstacle, meshPath;
 
     GLuint quad_vertex_buffer, particles_position_buffer, particles_color_buffer;
     GLuint quadVBO, valueVBO, quadTextCoordVBO,vao;
@@ -115,9 +112,8 @@ private:
 
 
     //ground
-    groundgrid ground;
-    int ground_columns = 10;
-    int ground_rows = 10;
+    int ground_columns = 20;
+    int ground_rows = 20;
 
     //people
     prsanimation prsan;
@@ -148,16 +144,18 @@ private:
     bool fixed_y_on = true;
     float radius = 0.2f;
     unsigned int num_people_per_frame = 10;
-    float pers_lifetime = 20.0f;
+    float pers_lifetime = 30.0f;
     float pers_bouncing = 0.8f;
     unsigned int max_num_of_people =  10;
     glm::vec3 pers_initial_position = glm::vec3(0.0f, 0.3f, 0.0f);
-    float pers_fountain_y = 0.0f;
-    bool fountain_mode = true;
 
-    float pers_i_velocity_x = 0.0f;
+    bool crowd_mode = false;
+    bool obstacles_on = true;
+
+
+    float pers_i_velocity_x = 1.0f;
     float pers_i_velocity_y = 0.0f;
-    float pers_i_velocity_z = 0.0f;
+    float pers_i_velocity_z = 1.0f;
 
     //SPHERE PARAMETERS
     bool sphere_on = false;

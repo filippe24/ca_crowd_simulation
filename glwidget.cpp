@@ -12,13 +12,13 @@ using namespace std;
 
 
 const float rotationFactor = 0.5f;
-const float maxRotationCamera = 75.0f;
+const float maxRotationCamera = 360.0f;
 const float minDistanceCamera = 1.0f;
-const float maxDistanceCamera = 10.0f;
+const float maxDistanceCamera = 30.0f;
 
 
 
-GLWidget::GLWidget(QWidget *parent) : QOpenGLWidget(parent), bPolygonFill(true), angleX(0.0f), angleY(0.0f), distance(4.0f)
+GLWidget::GLWidget(QWidget *parent) : QOpenGLWidget(parent), bPolygonFill(true), angleX(90.0f), angleY (0.0f), distance(30.0f)
 {
 
     std::cout<< "0.glWidget"<<std::endl;
@@ -71,8 +71,8 @@ void GLWidget::initializeGL()
     if(particleMode)
     {
 
-        //FUNTIONS DEFINTIONS
 
+        //FUNTIONS DEFINTIONS
         typedef void (APIENTRY *_glGenVertexArrays) (GLsizei, GLuint*);
         typedef void (APIENTRY *_glBindVertexArray) (GLuint);
         _glGenVertexArrays glGenVertexArrays;
@@ -124,7 +124,6 @@ void GLWidget::initializeGL()
 
 
         //ground
-        initializeGround();
         float x_i = x_min;
         float z_i = z_min;
         for(int col = 0; col < ground_columns; col ++)
@@ -160,6 +159,56 @@ void GLWidget::initializeGL()
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
+
+
+
+        //************************
+        //********OBSTACLES*******
+        //************************
+        programObstacles = new QOpenGLShaderProgram();
+        programObstacles->addShaderFromSourceFile(QOpenGLShader::Vertex,  QString::fromStdString(basicPath) +"/shaders/obstacle.vert");
+        programObstacles->addShaderFromSourceFile(QOpenGLShader::Fragment,  QString::fromStdString(basicPath) +"/shaders/obstacle.frag");
+        programObstacles->link();
+        if(!programObstacles->isLinked())
+        {
+                cout << "Shader program has not linked" << endl << endl << "Log: " << endl << endl << program->log().toStdString();
+                QApplication::quit();
+        }
+        programObstacles->bind();
+        meshObstacle.buildCube();
+        if(!meshObstacle.init(programObstacles))
+        {
+                cout << "Could not create vbo" << endl;
+                QApplication::quit();
+        }
+
+        programObstacles->release();
+
+
+        //************************
+        //********PATH************
+        //************************
+        programPath = new QOpenGLShaderProgram();
+        programPath->addShaderFromSourceFile(QOpenGLShader::Vertex,  QString::fromStdString(basicPath) +"/shaders/path.vert");
+        programPath->addShaderFromSourceFile(QOpenGLShader::Fragment,  QString::fromStdString(basicPath) +"/shaders/path.frag");
+        programPath->link();
+        if(!programPath->isLinked())
+        {
+                cout << "Shader program has not linked" << endl << endl << "Log: " << endl << endl << program->log().toStdString();
+                QApplication::quit();
+        }
+        programPath->bind();
+        meshPath.buildCube();
+        if(!meshPath.init(programPath))
+        {
+                cout << "Could not create vbo" << endl;
+                QApplication::quit();
+        }
+
+        programPath->release();
+
+
+
 
 
         //*************************
@@ -199,7 +248,6 @@ void GLWidget::initializeGL()
         //*********************************
         //**********  PARTICLES  **********
         //*********************************
-
         program = new QOpenGLShaderProgram();
         program->addShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/particle.vert");
         program->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/particle.frag");
@@ -247,12 +295,11 @@ void GLWidget::initializeGL()
         glBindBuffer(GL_ARRAY_BUFFER, valueVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(valueBuffer), &valueBuffer, GL_STATIC_DRAW);
 
-
         //*************************
         //*********ANIMATION*******
         //*************************
         initializeAnimation();
-
+        initializeGround();
 
         glUseProgram(0);
         glBindVertexArray(0);
@@ -364,9 +411,6 @@ void GLWidget::paintGL()
 
 
 
-
-
-
         //*********************************
         //**********  PARTICLES  **********
         //*********************************
@@ -410,6 +454,67 @@ void GLWidget::paintGL()
 
         //unbind
 
+
+        //****************************
+        //********  OBSTACLES  *******
+        //****************************
+        if(obstacles_on)
+        {
+            programObstacles->bind();
+            programObstacles->setUniformValue("color", QVector4D(0.3f, 0.3f, 0.3f, 1.0f));
+            std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getObstaclesPositions();
+            for(uint obs = 0; obs < obstacles_poitions.size(); obs++)
+            {
+                glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
+                float offset = cell_dim_param/2.0f;
+                programObstacles->setUniformValue("translation", QVector3D(obs_pos.x + offset ,2*radius, obs_pos.z + offset));
+                meshObstacle.render(*this);
+            }
+            programObstacles->release();
+
+        }
+
+
+        //****************************
+        //********  PATH  ************
+        //****************************
+        if(!crowd_mode)
+        {
+            programPath->bind();
+            programPath->setUniformValue("color", QVector4D(0.8f, 0.2f, 0.2f, 0.2f));
+    //        std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getGoalPosition();
+    //                glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
+            glm::vec3 goal_pos = prsan.ground.getGoalPos();
+            float offset = cell_dim_param/2.0f;
+            programPath->setUniformValue("translation", QVector3D(goal_pos.x + offset, -21.0f, goal_pos.z + offset));
+            meshPath.render(*this);
+
+        }
+
+
+        for(uint i= 0; i<positions.size(); i= i+3)
+        {
+            programPath->setUniformValue("color", QVector4D(0.2f, 0.2f, 0.8f, 0.2f));
+            float x = positions[i];
+            float z = positions[i+2];
+            int c = prsan.ground.getCurrentCell(x,0.0f,z).first;
+            int r = prsan.ground.getCurrentCell(x,0.0f,z).second;
+            glm::vec3 prs_cell_pos = prsan.ground.getCellPosition(c,r);
+            float offset = cell_dim_param/2.0f;
+            programPath->setUniformValue("translation", QVector3D(prs_cell_pos.x + offset, -21.0f, prs_cell_pos.z + offset));
+            meshPath.render(*this);
+
+        }
+
+        programPath->release();
+
+
+
+
+
+
+
+
         //*********************************
         //**********  PEOPLE  *************
         //*********************************
@@ -419,7 +524,6 @@ void GLWidget::paintGL()
         //TO DO : MAKE THE UPDATE DEPENDT ON HOW FAST THE MODEL IS MOVING
         //or just make everymdoel go at the same speed
         animateCal3dModel(time-old_time);
-        cout << " time " << time << " and time-old_time " <<(time -old_time) << endl;
         old_time = time;
 
         QMatrix4x4 rotation;
@@ -428,9 +532,6 @@ void GLWidget::paintGL()
 
 
         //compute angle between standard and direction
-
-
-        cout << endl;
 
         for(uint i= 0; i<positions.size(); i= i+3)
         {
@@ -457,6 +558,18 @@ void GLWidget::paintGL()
             programPers->setUniformValue("space_pos", pers_pos);
             programPers->setUniformValue("rotation", rotation);
             programPers->setUniformValue("orientation", orientation);
+
+////            test
+//            if(i == 0 || i==3)
+//            {
+//                std::cout << std::endl;
+//                programPers->setUniformValue("color", QVector4D(0.8f, 0.3f, 0.3f+float(i/10.0f), 1.0f));
+//                std::pair<int,int> cell = ground.getCurrentCell(pers_pos.x(),pers_pos.y(), pers_pos.z());
+//                std::cout << " the i = " << i << " person, is in the cell: x = " << cell.first << "  z = " << cell.second << std::endl;
+//                glm::vec3 test_pos = ground.getCellPosition(cell.first, cell.second);
+//                std::cout << "  and the position check is x: " << test_pos.x << " == " << pers_pos.x() << "  and z : "<< test_pos.z << " == " << pers_pos.z() << std::endl;
+
+//            }
 
             for(int m = 0; m < numOfParts; m++)
                 personParts[m].render(*this);
@@ -522,7 +635,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 	// Zoom
 	if(event->buttons() & Qt::RightButton)
 	{
-		distance += 0.01f * (event->y() - lastMousePos.y());
+        distance += 0.1f * (event->y() - lastMousePos.y());
 		distance = max(minDistanceCamera, min(distance, maxDistanceCamera));
 	}
 
@@ -552,6 +665,15 @@ void GLWidget::setProjection(float aspect)
     programPers->bind();
     programPers->setUniformValue("projection", projectionMatrix);
     programPers->release();
+
+
+    programObstacles->bind();
+    programObstacles->setUniformValue("projection", projectionMatrix);
+    programObstacles->release();
+
+    programPath->bind();
+    programPath->setUniformValue("projection", projectionMatrix);
+    programPath->release();
 }
 
 void GLWidget::setModelview()
@@ -576,6 +698,30 @@ void GLWidget::setModelview()
     programPers->setUniformValue("modelview", modelviewMatrix);
     programPers->setUniformValue("normalMatrix", modelviewMatrix.normalMatrix());
     programPers->release();
+
+
+    QMatrix4x4 modelviewMatrixObstacle;
+    modelviewMatrixObstacle.translate(0, 0, -distance);
+    modelviewMatrixObstacle.rotate(angleX, 1.0f, 0.0f, 0.0f);
+    modelviewMatrixObstacle.rotate(angleY, 0.0f, 1.0f, 0.0f);
+    modelviewMatrixObstacle.scale(cell_dim_param,roof_y,cell_dim_param);
+    programObstacles->bind();
+    programObstacles->setUniformValue("modelview", modelviewMatrixObstacle);
+    programObstacles->setUniformValue("normalMatrix", modelviewMatrixObstacle.normalMatrix());
+    programObstacles->release();
+
+    QMatrix4x4 modelviewMatrixPath;
+    modelviewMatrixPath.translate(0, 0, -distance);
+    modelviewMatrixPath.rotate(angleX, 1.0f, 0.0f, 0.0f);
+    modelviewMatrixPath.rotate(angleY, 0.0f, 1.0f, 0.0f);
+    modelviewMatrixPath.scale(cell_dim_param,0.01f,cell_dim_param);
+    programPath->bind();
+    programPath->setUniformValue("modelview", modelviewMatrixPath);
+    programPath->setUniformValue("normalMatrix", modelviewMatrixPath.normalMatrix());
+    programPath->release();
+
+
+
 }
 
 void GLWidget::setPolygonMode(bool bFill)
@@ -632,15 +778,19 @@ void GLWidget::animate()
     positions.clear();
     positions = prsan.animate_frame();
 
-    if(positions.size() < max_num_of_people )
+    if(crowd_mode)
     {
-        if(fountain_mode)
-            prsan.addPerson(int(num_people_per_frame));
-        else
+        if(positions.size() < max_num_of_people )
+                prsan.addPerson(int(num_people_per_frame));
+
+        if(positions.size() == 0)
+            initializeAnimation();
+    }
+    else
+    {
+        if(positions.size() == 0)
             prsan.addPerson(1);
     }
-    if(positions.size() == 0)
-        initializeAnimation();
 
 
     //animateCal3dModel(current_time);
@@ -656,17 +806,23 @@ void GLWidget::initializeAnimation()
     prsan.setRoomParam(floor_y, cell_pos_r, cell_pos_l, cell_pos_b, cell_pos_f);
     prsan.setTriangleParam(tri1,tri2, tri3);
     prsan.setSphereParam(sphere_center, sphere_radius);
-    if(num_people_per_frame > max_num_of_people)
-        prsan.setPersonParam(int(max_num_of_people), pers_lifetime, pers_bouncing);
-    else
-        prsan.setPersonParam(int(num_people_per_frame), pers_lifetime, pers_bouncing);
-    prsan.setFountain(pers_initial_position.x, pers_initial_position.y, pers_initial_position.z, pers_fountain_y);
+    if(crowd_mode)
+    {
+        if(num_people_per_frame > max_num_of_people)
+            prsan.setPersonParam(int(max_num_of_people), pers_lifetime, pers_bouncing);
+        else
+            prsan.setPersonParam(int(num_people_per_frame), pers_lifetime, pers_bouncing);
+    }
+    else {prsan.setPersonParam(1, pers_lifetime, pers_bouncing); }
+
+    prsan.ground = groundgrid(cell_dim_param);
+    prsan.ground.createGrid(ground_columns,ground_rows);
+
+    prsan.setCrowdMode(crowd_mode);
+    prsan.setPathMode(18,15,5,5);
     prsan.setInitialVelocity(pers_i_velocity_x, pers_i_velocity_y, pers_i_velocity_z);
-    prsan.setFountainMode(fountain_mode);
     prsan.setGravityPatam(gravity);
     prsan.initializeValues();
-
-
 }
 
 void GLWidget::resetAnimation()
@@ -865,8 +1021,7 @@ void GLWidget::animateCal3dModel(float elapsedSeconds)
 //***********************************
 void GLWidget::initializeGround()
 {
-    ground = groundgrid();
-    ground.createGrid(10,10);
+
 }
 
 
@@ -924,15 +1079,11 @@ void GLWidget::update_max_num(int num)
 }
 
 
-void GLWidget::update_fountain_vel_y(float vy)
-{
-    pers_fountain_y = vy;
-//    resetAnimation();
-}
 
-void GLWidget::setFountainMode(bool b)
+
+void GLWidget::setCrwodMode(bool b)
 {
-    fountain_mode = b;
+    crowd_mode = b;
     initializeAnimation();
 }
 

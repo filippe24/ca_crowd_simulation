@@ -5,10 +5,16 @@
 #include <vector>
 #include "geometry.h"
 #include "person.h"
+#include "groundgrid.h"
 
 class prsanimation
 {
 public:
+
+    //ground for A*
+    groundgrid ground;
+
+
     prsanimation(bool fix_y_on = true);
     void initializeValues();
     void setUpdateMode(int selected);
@@ -24,11 +30,14 @@ public:
     void setRoomParam(float f, float c_r, float c_l, float c_b, float c_f);
     void setTriangleParam(glm::vec3 ver1, glm::vec3 ver2, glm::vec3 ver3);
     void setSphereParam(glm::vec3 cent, float rad);
-    void setFountain(float x, float y, float z,float fount_y);
-    void setFountainMode(bool b);
+    void setCrowd(float max_x, float max_z);
+    void setCrowdMode(bool b);
     void setInitialVelocity(float vx, float vy, float vz);
 
     void setGravityPatam(float grav);
+
+    //A* path
+    void setPathMode(int ini_x, int ini_z, int goal_x, int goal_y);
 
     //GETTER
     void getVelocity(int pers,float &x, float &y, float &z);
@@ -46,20 +55,24 @@ private:
     Person::UpdateMethod current_method = Person::UpdateMethod::Verlet;
     bool first_frame = true;
 
+
+
+
     //person parameters
     int num_people_per_frame;
     //initial position of particles
     float initial_x = 0.0f;
     float initial_y = 0.5f;
     float initial_z = 0.0f;
+
+
     //life
     float dt = 0.01f;
     float tini = 0.0f;
     float lifetime = 5.0f;
     //moving
     float bouncing_par = 0.6f;
-    float fountain_y = 3.0f;
-    float fountain_vel_multiplier = 4.0f;
+    float crowd_vel_multiplier = 4.0f;
     //gravity acceleration
     float g_a = -9.8f;
 
@@ -68,7 +81,7 @@ private:
     float velocity_y = 0.0f;
     float velocity_z = 0.0f;
 
-    bool fountain_b = true;
+    bool crowd_b = true;
 
     void createRoom();
     void createTriangle();
