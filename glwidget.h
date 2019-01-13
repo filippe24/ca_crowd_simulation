@@ -51,6 +51,9 @@ public:
     void update_updating_mode(int mode);
 
     void setCrwodMode(bool b);
+    bool getCrowdMode();
+    bool personBoundingOn = true;
+
 
     void set_elast_ke(float ke);
     void set_elast_l0(float l0);
@@ -64,6 +67,10 @@ public:
     void update_bouncing(float boun);
     void update_spring_bool(bool spring_active);
     void update_spring2D_bool(bool spring2d_active);
+
+    prsanimation& accessPersonAnimation();
+
+    void setAvoidanceOn(bool b);
 
 
 public slots:
@@ -151,6 +158,7 @@ private:
 
     bool crowd_mode = false;
     bool obstacles_on = true;
+    bool avoidance_on = false;
 
 
     float pers_i_velocity_x = 1.0f;

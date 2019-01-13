@@ -416,43 +416,97 @@ void GLWidget::paintGL()
         //*********************************
         glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
 
-        program->bind();
-        enum
+        if(personBoundingOn)
         {
-            VERTICES,
-            VALUE
-        };
+            program->bind();
+            enum
+            {
+                VERTICES,
+                VALUE
+            };
 
-        glEnableVertexAttribArray(VERTICES);
-        glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
-        glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+            glEnableVertexAttribArray(VERTICES);
+            glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
+            glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        glEnableVertexAttribArray(VALUE);
-        glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
-        glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+            glEnableVertexAttribArray(VALUE);
+            glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
+            glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        for(uint i= 0; i<positions.size(); i= i+3)
-        {
-            QVector3D par_pos;
-            par_pos.setX(positions[i]);
-            par_pos.setY(positions[i+1]);
-            par_pos.setZ(positions[i+2]);
+            for(uint i= 0; i<positions.size(); i= i+3)
+            {
+                QVector3D par_pos;
+                par_pos.setX(positions[i]);
+                par_pos.setY(positions[i+1]);
+                par_pos.setZ(positions[i+2]);
 
-            program->setUniformValue("color", QVector4D(0.5f, 0.5f, 0.5f, 1.0f));
-            program->setUniformValue("particle_pos", par_pos);
-            program->setUniformValue("radius", radius);
+                program->setUniformValue("color", QVector4D(0.5f, 0.5f, 0.5f, 1.0f));
+                program->setUniformValue("particle_pos", par_pos);
+                program->setUniformValue("radius", radius);
 
 
-            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+                glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
+            }
+            glBindBuffer(GL_ARRAY_BUFFER,0);
+            glBindBuffer(GL_ARRAY_BUFFER,0);
+            glDisableVertexAttribArray(0);
+            program->release();
         }
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-        glBindBuffer(GL_ARRAY_BUFFER,0);
-        glDisableVertexAttribArray(0);
-        program->release();
+        //****************************
+        //********  LOOKS AT  *******
+        //****************************
+        if(prsan.getAvoidanceOn())
+        {
+            program->bind();
+            enum
+            {
+                VERTICES,
+                VALUE
+            };
+
+            glEnableVertexAttribArray(VERTICES);
+            glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
+            glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+            glEnableVertexAttribArray(VALUE);
+            glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
+            glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+            for(uint i= 0; i<positions.size(); i= i+3)
+            {
+                QVector3D par_pos;
+                par_pos.setX(positions[i]);
+                par_pos.setY(positions[i+1]);
+                par_pos.setZ(positions[i+2]);
+
+                float x,y,z = 0;
+                uint pers = uint((i+0.5f)/3);
+                prsan.getVelocity(pers,x,z);
+                glm::vec3 velocity = glm::normalize(glm::vec3(x,0.0f,z));
+                float lookAt = prsan.getMaxSeeAhead();
+                for(int looks = 1; looks<=2; looks++)
+                {
+                    velocity = velocity*(lookAt/looks);
+                    QVector3D diff = QVector3D(velocity.x,velocity.y,velocity.z);
+                    program->setUniformValue("color", QVector4D(0.5f, 0.5f, 0.5f, 1.0f));
+                    program->setUniformValue("particle_pos", par_pos+diff);
+                    program->setUniformValue("radius", radius/(2*(3-looks)));
+                    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+                }
 
 
-        //unbind
+
+            }
+            glBindBuffer(GL_ARRAY_BUFFER,0);
+            glBindBuffer(GL_ARRAY_BUFFER,0);
+            glDisableVertexAttribArray(0);
+            program->release();
+        }
+
+
+
+
 
 
         //****************************
@@ -460,21 +514,75 @@ void GLWidget::paintGL()
         //****************************
         if(obstacles_on)
         {
-            QMatrix4x4 scale;
 
-            scale.scale(0.5f ,1.0f, 0.5f);
+            //*********************************
+            //**********  SPHERES  ************
+            //*********************************
+            //draw the sphere as a big particle
+            program->bind();
 
-            programObstacles->bind();
-            programObstacles->setUniformValue("color", QVector4D(0.3f, 0.3f, 0.3f, 1.0f));
+            program->setUniformValue("color", QVector4D(0.1f, 0.1f, 0.0f, 1.0f));
+            program->setUniformValue("radius", radius);
             std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getObstaclesPositions();
+            enum
+            {
+                VERTICES,
+                VALUE
+            };
+            glEnableVertexAttribArray(VERTICES);
+            glBindBuffer(GL_ARRAY_BUFFER,quadVBO);
+            glVertexAttribPointer(VERTICES, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+            glEnableVertexAttribArray(VALUE);
+            glBindBuffer(GL_ARRAY_BUFFER,valueVBO);
+            glVertexAttribPointer(VALUE, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
             for(uint obs = 0; obs < obstacles_poitions.size(); obs++)
             {
                 glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
-                programObstacles->setUniformValue("translation", QVector3D(obs_pos.x ,2*radius, obs_pos.z));
-                meshObstacle.render(*this);
-            }
-            programObstacles->release();
+                program->setUniformValue("particle_pos", QVector3D(obs_pos.x ,0.0f, obs_pos.z));
 
+
+                glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+            }
+            //unbind
+            glBindBuffer(GL_ARRAY_BUFFER,0);
+            glBindBuffer(GL_ARRAY_BUFFER,0);
+
+            glDisableVertexAttribArray(0);
+
+            //2
+
+//            programObstacles->bind();
+//            programObstacles->setUniformValue("color", QVector4D(0.1f, 0.1f, 0.1f, 1.0f));
+//            programObstacles->setUniformValue("obstacle", true);
+//            programObstacles->setUniformValue("radius", radius);
+//            std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getObstaclesPositions();
+//            for(uint obs = 0; obs < obstacles_poitions.size(); obs++)
+//            {
+//                glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
+//                programObstacles->setUniformValue("translation", QVector3D(obs_pos.x ,2*radius, obs_pos.z));
+//                meshObstacle.render(*this);
+//            }
+//            programObstacles->release();
+
+
+            //3
+
+            programPath->bind();
+            programPath->setUniformValue("color", QVector4D(0.1f, 0.1f, 0.1f, 1.0f));
+            programPath->setUniformValue("obstacle", true);
+            programPath->setUniformValue("radius", radius);
+            obstacles_poitions = prsan.ground.getObstaclesPositions();
+            for(uint obs = 0; obs < obstacles_poitions.size(); obs++)
+            {
+                glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
+                programPath->setUniformValue("translation", QVector3D(obs_pos.x ,-21.0f, obs_pos.z));
+                meshPath.render(*this);
+            }
+
+            programPath->release();
         }
 
 
@@ -486,26 +594,33 @@ void GLWidget::paintGL()
         {
             programPath->bind();
             programPath->setUniformValue("color", QVector4D(0.8f, 0.2f, 0.2f, 0.2f));
+            programPath->setUniformValue("obstacle", false);
     //        std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getGoalPosition();
     //                glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
             glm::vec3 goal_pos = prsan.ground.getGoalPos();
             programPath->setUniformValue("translation", QVector3D(goal_pos.x, -21.0f, goal_pos.z));
             meshPath.render(*this);
+            programPath->release();
+
         }
         //starting
         if(!crowd_mode)
         {
             programPath->bind();
             programPath->setUniformValue("color", QVector4D(0.2f, 0.8f, 0.2f, 0.2f));
+            programPath->setUniformValue("obstacle", false);
             glm::vec3 goal_pos = prsan.ground.getStartPos();
             programPath->setUniformValue("translation", QVector3D(goal_pos.x, -21.0f, goal_pos.z));
             meshPath.render(*this);
+            programPath->release();
+
         }
         //path
         if(!crowd_mode)
         {
             programPath->bind();
             programPath->setUniformValue("color", QVector4D(0.1f, 0.6f, 0.9f, 0.2f));
+            programPath->setUniformValue("obstacle", false);
             std::vector<std::pair<int,int>> path_positions = prsan.ground.getPathPositions();
             for(uint pth = 0; pth < path_positions.size(); pth++)
             {
@@ -513,6 +628,8 @@ void GLWidget::paintGL()
                 programPath->setUniformValue("translation", QVector3D(pth_pos.x, -22.0f, pth_pos.z ));
                 meshPath.render(*this);
             }
+            programPath->release();
+
 
         }
 
@@ -521,7 +638,10 @@ void GLWidget::paintGL()
         //following
         for(uint i= 0; i<positions.size(); i= i+3)
         {
+            programPath->bind();
+
             programPath->setUniformValue("color", QVector4D(0.2f, 0.2f, 0.8f, 0.2f));
+            programPath->setUniformValue("obstacle", false);
             float x = positions[i];
             float z = positions[i+2];
             int c = prsan.ground.getCurrentCell(x,0.0f,z).first;
@@ -815,15 +935,16 @@ void GLWidget::initializeAnimation()
     if(crowd_mode)
     {
         if(num_people_per_frame > max_num_of_people)
-            prsan.setPersonParam(int(max_num_of_people), pers_lifetime, pers_bouncing);
+            prsan.setPersonParam(int(max_num_of_people), pers_lifetime, pers_bouncing, radius);
         else
-            prsan.setPersonParam(int(num_people_per_frame), pers_lifetime, pers_bouncing);
+            prsan.setPersonParam(int(num_people_per_frame), pers_lifetime, pers_bouncing, radius);
     }
-    else {prsan.setPersonParam(1, pers_lifetime, pers_bouncing); }
+    else {prsan.setPersonParam(1, pers_lifetime, pers_bouncing,  radius); }
 
     prsan.ground = groundgrid(cell_dim_param);
     prsan.ground.createGrid(ground_columns,ground_rows);
 
+    prsan.setAvoidanceOn(avoidance_on);
     prsan.setCrowdMode(crowd_mode);
     prsan.setPathMode(goal_cell_x,goal_cell_z,start_cell_x,start_cell_y);
     prsan.setInitialVelocity(pers_i_velocity_x, pers_i_velocity_y, pers_i_velocity_z);
@@ -1068,7 +1189,10 @@ void GLWidget::initializePlane( glm::vec3 rb, glm::vec3 rt, glm::vec3 lt, glm::v
 //***********************************
 //******* buttons *******************
 //***********************************
-
+prsanimation& GLWidget::accessPersonAnimation()
+{
+    return prsan;
+}
 void GLWidget::update_radius(float rad)
 {
     radius = rad;
@@ -1092,7 +1216,10 @@ void GLWidget::setCrwodMode(bool b)
     crowd_mode = b;
     initializeAnimation();
 }
-
+bool GLWidget::getCrowdMode()
+{
+    return crowd_mode;
+}
 void GLWidget::update_pos(float x_delta, float y_delta, float z_delta)
 {
     pers_initial_position.x = pers_initial_position.x + x_delta;
@@ -1114,4 +1241,9 @@ void GLWidget::update_vel(float x_delta, float y_delta, float z_delta)
     pers_i_velocity_x = pers_i_velocity_x + x_delta;
     pers_i_velocity_y = pers_i_velocity_y + y_delta;
     pers_i_velocity_z = pers_i_velocity_z + z_delta;
+}
+void GLWidget::setAvoidanceOn(bool b)
+{
+    avoidance_on = b;
+    prsan.setAvoidanceOn(b);
 }

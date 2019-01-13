@@ -20,11 +20,17 @@ public:
     prsanimation(bool fix_y_on = true);
     void initializeValues();
     void setUpdateMode(int selected);
-    void setPersonParam(int num_pers, float life, float bounce);
+    void setPersonParam(int num_pers, float life, float bounce, float radius_in);
     void addPerson(int new_person = 1);
     void createPeople();
 
     std::vector<float> animate_frame();
+
+    void setAvoidanceOn(bool b){ avoidance_on = b;}
+    bool getAvoidanceOn(){return avoidance_on;}
+
+    void setMaxSeeAhead(float f){ MAX_SEE_AHEAD = f;}
+    float getMaxSeeAhead(){ return MAX_SEE_AHEAD;}
 
 
 
@@ -42,8 +48,8 @@ public:
     void setPathMode(int ini_x, int ini_z, int goal_x, int goal_y);
 
     //GETTER Unused
-    void getVelocity(int pers,float &x, float &y, float &z);
-    void getVelocity(int pers, float &x, float &z);
+    void getVelocity(uint pers, float &x, float &y, float &z);
+    void getVelocity(uint pers, float &x, float &z);
 
     //Orientation Smooth
     float updateOrientation(uint pers, float new_angle);
@@ -53,6 +59,7 @@ public:
 private:
 
     bool fixed_y_on = true;
+    bool avoidance_on = false;
 
     std::vector<Person> current_people;
     std::vector<Plane> planes;
@@ -62,15 +69,18 @@ private:
     Person::UpdateMethod current_method = Person::UpdateMethod::Verlet;
     bool first_frame = true;
 
+    void collisionUpdatePos(Person &p, uint i);
+    void planeCollisionDetection(Person &p);
+    void personCollisionDetection(Person &p, uint i);
 
     //A*
-    void pathUpdatePos(Person &p);
-    void collisionUpdatePos(Person &p, int i);
+    void pathUpdatePos(Person &p, uint i);
+    void crowdUpdatePos(Person &p, uint i);
 
     //STEERING~COLLISION~AVOIDANCE
-    float MAX_SEE_AHEAD = 4.0f;
-    float MAX_AVOID_FORCE = 2.0f;
-    void check_for_obstacles(Person &p);
+    float MAX_SEE_AHEAD = 1.0f;
+    float MAX_AVOID_FORCE = 1.0f;
+    void check_for_obstacles(Person &p, uint i);
 
 
     //person parameters
@@ -79,6 +89,8 @@ private:
     float initial_x = 0.0f;
     float initial_y = 0.5f;
     float initial_z = 0.0f;
+
+    float radius = 0.0f;
 
 
     //life

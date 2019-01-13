@@ -37,3 +37,27 @@ MainWindow::~MainWindow()
 //    ui->openGLWidget->resetAnimation();
 //}
 
+
+void MainWindow::on_resetAnimation_clicked()
+{
+    ui->openGLWidget->resetAnimation();
+}
+
+void MainWindow::on_pathcrowdButton_clicked()
+{
+    bool previous_mode = ui->openGLWidget->getCrowdMode();
+    ui->openGLWidget->setCrwodMode(!previous_mode);
+    ui->openGLWidget->resetAnimation();
+}
+
+void MainWindow::on_boundingButton_clicked()
+{
+    bool previous_b = ui->openGLWidget->personBoundingOn;
+    ui->openGLWidget->personBoundingOn = !previous_b;
+}
+
+void MainWindow::on_avoidanceButton_clicked()
+{
+   bool previous_b = ui->openGLWidget->accessPersonAnimation().getAvoidanceOn();
+   ui->openGLWidget->setAvoidanceOn(!previous_b);
+}
