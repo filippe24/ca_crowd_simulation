@@ -176,11 +176,9 @@ void Person::setFixedY(bool fix_y, float pos_y)
 
 
 //boolean to check if the velocity vector changed so the orientation
-void Person::setVelocityChangeBool(bool set)
-{
-    m_velocity_chenged = set;
-}
-bool Person::isVelocityChanged()
-{
-    return m_velocity_chenged;
-}
+void Person::setVelocityChangeBool(bool set)    {m_velocity_chenged = set;}
+bool Person::isVelocityChanged()    {return m_velocity_chenged;}
+
+void Person::setOrientationAngle(float a)   {orientation_angle = a;}
+float Person::getOrientationAngle() {return orientation_angle;}
+

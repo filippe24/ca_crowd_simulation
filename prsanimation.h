@@ -13,6 +13,8 @@ public:
 
     //ground for A*
     groundgrid ground;
+    std::vector<groundgrid::cellT> pathPos;
+    uint current_position = 0;
 
 
     prsanimation(bool fix_y_on = true);
@@ -39,9 +41,14 @@ public:
     //A* path
     void setPathMode(int ini_x, int ini_z, int goal_x, int goal_y);
 
-    //GETTER
+    //GETTER Unused
     void getVelocity(int pers,float &x, float &y, float &z);
     void getVelocity(int pers, float &x, float &z);
+
+    //Orientation Smooth
+    float updateOrientation(uint pers, float new_angle);
+    float computeOrienation(uint pers);
+    float orientationAngle(glm::vec3 velocity);
 
 private:
 
@@ -56,6 +63,14 @@ private:
     bool first_frame = true;
 
 
+    //A*
+    void pathUpdatePos(Person &p);
+    void collisionUpdatePos(Person &p, int i);
+
+    //STEERING~COLLISION~AVOIDANCE
+    float MAX_SEE_AHEAD = 4.0f;
+    float MAX_AVOID_FORCE = 2.0f;
+    void check_for_obstacles(Person &p);
 
 
     //person parameters
@@ -72,7 +87,7 @@ private:
     float lifetime = 5.0f;
     //moving
     float bouncing_par = 0.6f;
-    float crowd_vel_multiplier = 4.0f;
+    float vel_multiplier = 3.0f;
     //gravity acceleration
     float g_a = -9.8f;
 

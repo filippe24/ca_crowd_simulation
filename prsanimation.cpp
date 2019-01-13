@@ -38,7 +38,9 @@ void prsanimation::setPersonParam(int num_pers, float life, float bounce)
 }
 
 
-//COLLISION OF PARTICLES
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~ANIMATE~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 std::vector<float> prsanimation::animate_frame()
 {
 
@@ -52,233 +54,20 @@ std::vector<float> prsanimation::animate_frame()
 
 
         // simulation loop
-        if (p.getLifetime() > 0) {
+        if (p.getLifetime() > 0)
+        {
 
-            if(current_method == Person::UpdateMethod::Verlet)
+
+
+            if(crowd_b)
             {
-                if(p.getLifetime() > (lifetime - dt))
-                {
-                    glm::vec3 ini_pos = p.getCurrentPosition();
-                    glm::vec3 ini_vel = p.getVelocity();
-                    p.setPreviousPosition(ini_pos.x - (ini_vel.x)*dt, ini_pos.y - (ini_vel.y)*dt, ini_pos.z - (ini_vel.z)*dt);
-                }
-            }
-            p.updatePerson(dt, current_method);
-            p.setLifetime(p.getLifetime() - dt);
-
-            //**********************
-            //**floor collisions****
-            //**********************
-            for (uint p_j = 0; p_j < planes.size(); p_j++)
-            {
-                float disact, disant;
-
-                Plane plane = planes[p_j];
-                disant = plane.distPoint2Plane(p.getPreviousPosition());
-                disact = plane.distPoint2Plane(p.getCurrentPosition());
-
-
-                if (disant*disact < 0.0f)
-                {
-
-                    //orientation changed bool
-                    p.setVelocityChangeBool(true);
-
-                    float b = p.getBouncing();
-
-                    glm::vec3 n = plane.normal;
-                    glm::vec3 pos = p.getCurrentPosition();
-                    glm::vec3 newPos = (glm::dot(pos,n) + plane.dconst)*n;
-                    p.setPosition(pos.x - (1+b)*newPos.x, pos.y - (1+b)*newPos.y, pos.z - (1+b)*newPos.z);
-
-                    glm::vec3 vel = p.getVelocity();
-                    glm::vec3 newVel = (glm::dot(vel,n))*n;
-                    p.setVelocity((vel.x - (1+b)*newVel.x), (vel.y - (1+b)*newVel.y), (vel.z - (1+b)*newVel.z));
-
-                    //update of previous position for velrlet (maybe not necessary)
-                    if(current_method == Person::UpdateMethod::Verlet)
-                    {
-                        glm::vec3 normal_plane = planes[p_j].normal;
-                        // use distance with previous plane: disant
-                        glm::vec3 normal_x_distance = normal_plane*disant;
-                        glm::vec3 prev_pos = p.getPreviousPosition();
-                        glm::vec3 n_o_p = prev_pos - 2.0f*normal_x_distance;
-                        p.setPreviousPosition(n_o_p);
-                    }
-                }
+                collisionUpdatePos(p,i);
             }
 
-            //**********************
-            //**triangle collision*
-            //**********************
-            for (uint t_i = 0; t_i < triangles.size(); t_i++)
+            else
             {
-                float disact, disant;
+              pathUpdatePos(p);
 
-                Triangle t = triangles[t_i];
-                disant = t.distPoint2Plane(p.getPreviousPosition());
-                disact = t.distPoint2Plane(p.getCurrentPosition());
-                if(disant*disact < 0.0f)
-                {
-                    if ( t.isInside(p.getCurrentPosition()))
-                    {
-
-                        //orientation changed bool
-                        p.setVelocityChangeBool(false);
-
-                        float b = p.getBouncing();
-
-                        glm::vec3 n = t.normal;
-                        glm::vec3 pos = p.getCurrentPosition();
-                        glm::vec3 newPos = (glm::dot(pos,n) + t.dconst)*n;
-                        p.setPosition(pos.x - (1+b)*newPos.x, pos.y - (1+b)*newPos.y, pos.z - (1+b)*newPos.z);
-
-                        glm::vec3 vel = p.getVelocity();
-                        glm::vec3 newVel = (glm::dot(vel,n))*n;
-                        p.setVelocity((vel.x - (1+b)*newVel.x), (vel.y - (1+b)*newVel.y), (vel.z - (1+b)*newVel.z));
-
-                        //update of previous position for velrlet (maybe not necessary)
-                        if(current_method == Person::UpdateMethod::Verlet)
-                        {
-                            glm::vec3 normal_plane = t.normal;
-                            // use distance with previous plane: disant
-                            glm::vec3 normal_x_distance = normal_plane*disant;
-                            glm::vec3 prev_pos = p.getPreviousPosition();
-                            glm::vec3 n_o_p = prev_pos - 2.0f*normal_x_distance;
-                            p.setPreviousPosition(n_o_p);
-                        }
-                    }
-                }
-
-
-            }
-
-            //**********************
-            //**sphere collision****
-            //**********************
-            for (uint s_i = 0; s_i < spheres.size(); s_i++)
-            {
-                bool inOld = spheres[s_i].isInside(p.getPreviousPosition());
-                bool inNew = spheres[s_i].isInside(p.getCurrentPosition());
-
-                if(!inOld and inNew)
-                {
-
-                    //orientation changed bool
-                    p.setVelocityChangeBool(false);
-
-                    //computing the intersection
-                    glm::vec3 interPoint, interPoint1, interPoint2;
-                    float lambda1, lambda2;
-                    float rad = spheres[s_i].radius;
-                    glm::vec3 p_old = p.getPreviousPosition();
-                    glm::vec3 p_new = p.getCurrentPosition();
-                    glm::vec3 c = spheres[s_i].center;
-                    glm::vec3 v = p_new - p_old;
-                    float alpha = glm::dot(v, v);
-                    float beta = 2*glm::dot((v), (p_old - c));
-                    float gamma = glm::dot(c,c) + glm::dot(p_old,p_old) - 2*glm::dot(p_old, c) - (rad*rad);
-
-                    float delta = beta*beta - 4*alpha*gamma;
-                    if(delta >= 0)
-                    {
-                        lambda1 = -beta + sqrt(delta);
-                        lambda2 = -beta - sqrt(delta);
-
-
-
-                        interPoint1 = p_old + lambda1*v;
-                        interPoint2 = p_old + lambda2*v;
-                        //default value
-                        interPoint = interPoint1;
-
-                    }
-                    else
-                        std::cerr << "segment-sphere intersection have no solution" << std::endl;
-
-                    if(lambda1 >= 0.0f and lambda1 <= 1.0f)
-                        interPoint = interPoint1;
-                    else if(lambda2 >= 0.0f and lambda2 <= 1.0f)
-                        interPoint = interPoint2;
-                    else
-                        std::cerr << "segment-sphere intersection : none of the 2 lambdas is between 0 and 1"<< std::endl;
-
-
-                    glm::vec3 norm_vec = glm::normalize(interPoint - c);
-                    Plane tang_plane(interPoint, norm_vec);
-
-                    //bouncing
-                    float b = p.getBouncing();
-
-                    glm::vec3 pos = p.getCurrentPosition();
-
-                    glm::vec3 newPos = (glm::dot(pos,norm_vec) + tang_plane.dconst)*norm_vec;
-                    p.setPosition(pos.x - (1+b)*newPos.x, pos.y - (1+b)*newPos.y, pos.z - (1+b)*newPos.z);
-
-                    glm::vec3 vel = p.getVelocity();
-
-                    glm::vec3 newVel = (glm::dot(vel,norm_vec))*norm_vec;
-                    p.setVelocity((vel.x - (1+b)*newVel.x), (vel.y - (1+b)*newVel.y), (vel.z - (1+b)*newVel.z));
-
-                }
-                if(inNew)
-                {
-                            //std::cerr << "NOW INSIDE THE SPHERE" << std::endl;
-                }
-            }
-
-            //**********************
-            //**person collision****
-            //**********************
-            for (uint prs_i = 0; prs_i < current_people.size(); prs_i++)
-            {
-                if(prs_i != i)
-                {
-                    Person other_prs = current_people[prs_i];
-                    glm::vec3 distance_v = other_prs.getCurrentPosition() - p.getCurrentPosition();
-                    float dist = glm::length(distance_v);
-                    if(dist < 2*0.2f)
-                    {
-                        //collision
-                        float b = p.getBouncing();
-
-                        glm::vec3 o_dist_dir = -(glm::normalize(distance_v));
-
-                        //1
-                        glm::vec3 cur_pos = p.getCurrentPosition();
-                        p.setPosition(p.getPreviousPosition());
-
-                        glm::vec3 new_vel = p.getVelocity();
-                        new_vel = -new_vel*o_dist_dir*b;
-                        new_vel = glm::normalize(new_vel)*crowd_vel_multiplier;
-                        p.setVelocity(new_vel);
-
-                        if(current_method == Person::UpdateMethod::Verlet)
-                        {
-                            p.setPreviousPosition(cur_pos);
-
-                        }
-
-                        //2
-//                        glm::vec3 interPoint = p.getCurrentPosition() + o_dist_dir/2.0f;
-//                        glm::vec3 norm_vec = glm::normalize(interPoint - other_prs.getCurrentPosition());
-//                        Plane tang_plane(interPoint, norm_vec);
-
-//                        //bouncing
-//                        glm::vec3 pos = p.getCurrentPosition();
-
-//                        glm::vec3 newPos = (glm::dot(pos,norm_vec) + tang_plane.dconst)*norm_vec;
-//                        p.setPosition(pos.x - (1+b)*newPos.x, pos.y, pos.z - (1+b)*newPos.z);
-
-//                        glm::vec3 vel = p.getVelocity();
-
-//                        glm::vec3 newVel = (glm::dot(vel,norm_vec))*norm_vec;
-//                        p.setVelocity((vel.x - (1+b)*newVel.x), vel.y, (vel.z - (1+b)*newVel.z));
-
-
-
-                    }
-                }
             }
 
 
@@ -300,7 +89,9 @@ std::vector<float> prsanimation::animate_frame()
 
 
 
-
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~ADD~PERSONS
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void prsanimation::addPerson(int new_person)
 {
 
@@ -313,7 +104,10 @@ void prsanimation::addPerson(int new_person)
         if(crowd_b)
              p1 = Person(in_x, initial_y, in_z);
         else
-            p1 = Person(initial_x, initial_y, initial_z); //initial position of the particle
+        {
+            glm::vec3 new_initial = ground.getStartPos();
+            p1 = Person(new_initial.x, initial_y, new_initial.z); //initial position of the particle
+        }
         p1.setLifetime(lifetime);
         p1.setBouncing(bouncing_par);
         p1.addForce(0, g_a, 0);
@@ -333,22 +127,32 @@ void prsanimation::addPerson(int new_person)
             vz = velocity_z + (((double) rand() / (RAND_MAX))  - 0.5f);
             glm::vec3 ini_vel = glm::vec3(vx,vy,vz);
             ini_vel = glm::normalize(ini_vel);
-            p1.setVelocity(crowd_vel_multiplier*ini_vel);
-            current_people.push_back(p1);
+            p1.setVelocity(vel_multiplier*ini_vel);
         }
-        //velocity mode
         else
         {
             glm::vec3 ini_vel = glm::vec3(vx,vy,vz);
             ini_vel = glm::normalize(ini_vel);
-            p1.setVelocity(crowd_vel_multiplier*ini_vel);
-            current_people.push_back(p1);
+            p1.setVelocity(vel_multiplier*ini_vel);
         }
+
+
+        glm::vec3 defined_velocity = p1.getVelocity();
+        p1.setOrientationAngle(orientationAngle(defined_velocity));
+
+
+        current_people.push_back(p1);
     }
 }
 
 
 
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~PARAMETERS
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void prsanimation::setPathMode(int goal_x, int goal_z, int ini_x, int ini_z)
 {
     glm::vec3 pos = ground.getCellPosition(ini_x, ini_z);
@@ -358,8 +162,9 @@ void prsanimation::setPathMode(int goal_x, int goal_z, int ini_x, int ini_z)
     ground.setStart(ini_x, ini_z);
 
     //TEST
-
     ground.computeAstar();
+    pathPos = ground.getPathPositions();
+    current_position = 1;
 }
 
 void prsanimation::setInitialVelocity(float vx, float vy, float vz)
@@ -464,7 +269,7 @@ void prsanimation::setGravityPatam(float grav)
 
 
 
-
+//UNUSED GETTERS
 void prsanimation::getVelocity(int pers, float &x, float &y, float &z)
 {
     Person p = current_people[pers];
@@ -477,13 +282,120 @@ void prsanimation::getVelocity(int pers, float &x, float &y, float &z)
 
 void prsanimation::getVelocity(int pers, float &x,float &z)
 {
-//    std::cout << "prsn :numero totale di persone :" << current_people.size() << "  persona selezionata " << pers << std::endl;
     Person p = current_people[pers];
     glm::vec2 velocity = glm::vec2(p.getVelocity().x, p.getVelocity().z);
     velocity = glm::normalize(velocity);
     x = velocity.x;
     z = velocity.y;
-//    std::cout << "prsn :velocity : x" << x << " and :y " << z << std::endl;
+}
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~ORIENTATION
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+float prsanimation::computeOrienation(uint pers)
+{
+    Person p = current_people[pers];
+
+    glm::vec3 defined_velocity = p.getVelocity();
+    return orientationAngle(defined_velocity);
+}
+float prsanimation::orientationAngle(glm::vec3 velocity)
+{
+    float dot = velocity.x*0.0f + velocity.z*(1.0f);
+    float det = velocity.x*(1.0f) - velocity.z*0.0f;
+
+    float angle = atan2(det, dot);
+    angle = (180.0f*angle)/M_PI;
+    return angle;
+
+}
+float prsanimation::updateOrientation(uint pers, float new_angle)
+{
+
+    Person p = current_people[pers];
+    float cur_orienation = p.getOrientationAngle();
+
+    //parameters
+    float epsilon = 2.0f;
+    float delta = 10.0f;
+    int frameOfRotation = 10;
+
+
+
+    //under a certain treshold the orientation are considered the same
+    if(new_angle >= cur_orienation - epsilon && new_angle <= cur_orienation +epsilon)
+    {
+        current_people[pers].setOrientationAngle(new_angle);
+        return new_angle;
+    }
+    else
+    {
+        //the new angle is bigger then the stored one
+        if(new_angle > cur_orienation)
+        {
+            float diff = new_angle - cur_orienation;
+            //manage the case of a small angle betwen the border -180 and 180
+            if(diff > 180)
+            {
+                diff = -(360 - diff);
+            }
+            if(abs(diff) >delta)
+            {
+                cur_orienation = cur_orienation + diff/frameOfRotation;
+
+             }
+            else
+            {
+                cur_orienation = cur_orienation + delta;
+            }
+        }
+        else
+        {
+            float diff = cur_orienation - new_angle;
+
+            if(diff > 180)
+            {
+                diff = -(360 - diff);
+            }
+
+            if(abs(diff) >delta)
+            {
+                cur_orienation = cur_orienation - diff/frameOfRotation;
+             }
+            else
+            {
+                cur_orienation = cur_orienation - delta;
+            }
+        }
+        //check if we get over the border and fix the value
+        if(abs(cur_orienation) >= 180)
+            cur_orienation = -(180-abs(180-cur_orienation));
+        current_people[pers].setOrientationAngle(cur_orienation);
+        return cur_orienation;
+
+
+
+    }
+
+
+
+}
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~STEERING~COLLISION~AVOIDANCE
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void prsanimation::check_for_obstacles(Person &p)
+{
+    glm::vec3 cur_vel = p.getVelocity();
+    glm::vec3 cur_pos = p.getCurrentPosition();
+    glm::vec3 ahead_v = cur_pos + glm::normalize(cur_vel)*MAX_SEE_AHEAD;
+    glm::vec3 half_ahead_v = ahead_v*0.5f;
+
+
 }
 
 
@@ -498,7 +410,77 @@ void prsanimation::getVelocity(int pers, float &x,float &z)
 
 
 
-//A * ALGORITHM USAGE
+
+
+
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~A* UPDATE~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void prsanimation::pathUpdatePos(Person &p)
+{
+
+    glm::vec3 nextStep = ground.getCellPosition(pathPos[current_position].first, pathPos[current_position].second);
+    glm::vec3 curPos = p.getCurrentPosition();
+    glm::vec3 distance_v = (nextStep - curPos);
+    float distance = glm::length(distance_v);
+
+    //SET VELOCITY
+    distance_v = glm::normalize(distance_v);
+    p.setVelocity(distance_v*vel_multiplier);
+    //SET VERLET VELOCITY (FIRST TIME)
+    if(current_method == Person::UpdateMethod::Verlet)
+    {
+        if(p.getLifetime() > (lifetime - dt))
+        {
+            glm::vec3 ini_pos = p.getCurrentPosition();
+            glm::vec3 ini_vel = p.getVelocity();
+            p.setPreviousPosition(ini_pos.x - (ini_vel.x)*dt, ini_pos.y, ini_pos.z - (ini_vel.z)*dt);
+        }
+    }
+
+
+    //UPDATE PERSON MOVEMENT
+    p.updatePerson(dt, current_method);
+    p.setLifetime(p.getLifetime() - dt);
+
+    //AFTER CHECK FOR PATH
+    glm::vec3 newPos = p.getCurrentPosition();
+    glm::vec3 newDistance_v = (nextStep - newPos);
+    float newDistance = glm::length(newDistance_v);
+
+    //update the next cell
+//    if( (distance < ground.getCellDim()/2.0f + dt) || (newDistance > distance))
+    if( (distance < ground.getCellDim()/2.0f + dt))
+    {
+        if( current_position == (pathPos.size() - 1))
+        {
+            std::cout<< "this is the last cell" << std::endl;
+            p.setLifetime(0.0f);
+            return;
+        }
+        current_position++;
+        nextStep = ground.getCellPosition(pathPos[current_position].first, pathPos[current_position].second);
+        distance_v = nextStep - curPos;
+        distance = glm::length(distance_v);
+        distance_v = glm::normalize(distance_v);
+
+        //set the velocity to the new waypoint
+        p.setVelocity(distance_v*vel_multiplier);
+        //set verlet velocity
+        if(current_method == Person::UpdateMethod::Verlet)
+        {
+            glm::vec3 updated_pos = p.getCurrentPosition();
+            glm::vec3 updated_vel = p.getVelocity();
+            p.setPreviousPosition(updated_pos.x - (updated_vel.x)*dt, updated_pos.y, updated_pos.z - (updated_vel.z)*dt);
+        }
+    }
+
+
+
+}
 
 
 
@@ -510,5 +492,238 @@ void prsanimation::getVelocity(int pers, float &x,float &z)
 
 
 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~COLLISION~UPDATE
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void prsanimation::collisionUpdatePos(Person &p, int i)
+{
+    if(current_method == Person::UpdateMethod::Verlet)
+    {
+        if(p.getLifetime() > (lifetime - dt))
+        {
+            glm::vec3 ini_pos = p.getCurrentPosition();
+            glm::vec3 ini_vel = p.getVelocity();
+            p.setPreviousPosition(ini_pos.x - (ini_vel.x)*dt, ini_pos.y - (ini_vel.y)*dt, ini_pos.z - (ini_vel.z)*dt);
+        }
+    }
+    p.updatePerson(dt, current_method);
+    p.setLifetime(p.getLifetime() - dt);
+
+    //**********************
+    //**floor collisions****
+    //**********************
+    for (uint p_j = 0; p_j < planes.size(); p_j++)
+    {
+        float disact, disant;
+
+        Plane plane = planes[p_j];
+        disant = plane.distPoint2Plane(p.getPreviousPosition());
+        disact = plane.distPoint2Plane(p.getCurrentPosition());
+
+
+        if (disant*disact < 0.0f)
+        {
+
+            //orientation changed bool
+            p.setVelocityChangeBool(true);
+
+            float b = p.getBouncing();
+
+            glm::vec3 n = plane.normal;
+            glm::vec3 pos = p.getCurrentPosition();
+            glm::vec3 newPos = (glm::dot(pos,n) + plane.dconst)*n;
+            p.setPosition(pos.x - (1+b)*newPos.x, pos.y - (1+b)*newPos.y, pos.z - (1+b)*newPos.z);
+
+            glm::vec3 vel = p.getVelocity();
+            glm::vec3 newVel = (glm::dot(vel,n))*n;
+            p.setVelocity((vel.x - (1+b)*newVel.x), (vel.y - (1+b)*newVel.y), (vel.z - (1+b)*newVel.z));
+
+            //update of previous position for velrlet (maybe not necessary)
+            if(current_method == Person::UpdateMethod::Verlet)
+            {
+                glm::vec3 normal_plane = planes[p_j].normal;
+                // use distance with previous plane: disant
+                glm::vec3 normal_x_distance = normal_plane*disant;
+                glm::vec3 prev_pos = p.getPreviousPosition();
+                glm::vec3 n_o_p = prev_pos - 2.0f*normal_x_distance;
+                p.setPreviousPosition(n_o_p);
+            }
+        }
+    }
+
+    //**********************
+    //**triangle collision*
+    //**********************
+    for (uint t_i = 0; t_i < triangles.size(); t_i++)
+    {
+        float disact, disant;
+
+        Triangle t = triangles[t_i];
+        disant = t.distPoint2Plane(p.getPreviousPosition());
+        disact = t.distPoint2Plane(p.getCurrentPosition());
+        if(disant*disact < 0.0f)
+        {
+            if ( t.isInside(p.getCurrentPosition()))
+            {
+
+                //orientation changed bool
+                p.setVelocityChangeBool(false);
+
+                float b = p.getBouncing();
+
+                glm::vec3 n = t.normal;
+                glm::vec3 pos = p.getCurrentPosition();
+                glm::vec3 newPos = (glm::dot(pos,n) + t.dconst)*n;
+                p.setPosition(pos.x - (1+b)*newPos.x, pos.y - (1+b)*newPos.y, pos.z - (1+b)*newPos.z);
+
+                glm::vec3 vel = p.getVelocity();
+                glm::vec3 newVel = (glm::dot(vel,n))*n;
+                p.setVelocity((vel.x - (1+b)*newVel.x), (vel.y - (1+b)*newVel.y), (vel.z - (1+b)*newVel.z));
+
+                //update of previous position for velrlet (maybe not necessary)
+                if(current_method == Person::UpdateMethod::Verlet)
+                {
+                    glm::vec3 normal_plane = t.normal;
+                    // use distance with previous plane: disant
+                    glm::vec3 normal_x_distance = normal_plane*disant;
+                    glm::vec3 prev_pos = p.getPreviousPosition();
+                    glm::vec3 n_o_p = prev_pos - 2.0f*normal_x_distance;
+                    p.setPreviousPosition(n_o_p);
+                }
+            }
+        }
+
+
+    }
+
+    //**********************
+    //**sphere collision****
+    //**********************
+    for (uint s_i = 0; s_i < spheres.size(); s_i++)
+    {
+        bool inOld = spheres[s_i].isInside(p.getPreviousPosition());
+        bool inNew = spheres[s_i].isInside(p.getCurrentPosition());
+
+        if(!inOld and inNew)
+        {
+
+            //orientation changed bool
+            p.setVelocityChangeBool(false);
+
+            //computing the intersection
+            glm::vec3 interPoint, interPoint1, interPoint2;
+            float lambda1, lambda2;
+            float rad = spheres[s_i].radius;
+            glm::vec3 p_old = p.getPreviousPosition();
+            glm::vec3 p_new = p.getCurrentPosition();
+            glm::vec3 c = spheres[s_i].center;
+            glm::vec3 v = p_new - p_old;
+            float alpha = glm::dot(v, v);
+            float beta = 2*glm::dot((v), (p_old - c));
+            float gamma = glm::dot(c,c) + glm::dot(p_old,p_old) - 2*glm::dot(p_old, c) - (rad*rad);
+
+            float delta = beta*beta - 4*alpha*gamma;
+            if(delta >= 0)
+            {
+                lambda1 = -beta + sqrt(delta);
+                lambda2 = -beta - sqrt(delta);
+
+
+
+                interPoint1 = p_old + lambda1*v;
+                interPoint2 = p_old + lambda2*v;
+                //default value
+                interPoint = interPoint1;
+
+            }
+            else
+                std::cerr << "segment-sphere intersection have no solution" << std::endl;
+
+            if(lambda1 >= 0.0f and lambda1 <= 1.0f)
+                interPoint = interPoint1;
+            else if(lambda2 >= 0.0f and lambda2 <= 1.0f)
+                interPoint = interPoint2;
+            else
+                std::cerr << "segment-sphere intersection : none of the 2 lambdas is between 0 and 1"<< std::endl;
+
+
+            glm::vec3 norm_vec = glm::normalize(interPoint - c);
+            Plane tang_plane(interPoint, norm_vec);
+
+            //bouncing
+            float b = p.getBouncing();
+
+            glm::vec3 pos = p.getCurrentPosition();
+
+            glm::vec3 newPos = (glm::dot(pos,norm_vec) + tang_plane.dconst)*norm_vec;
+            p.setPosition(pos.x - (1+b)*newPos.x, pos.y - (1+b)*newPos.y, pos.z - (1+b)*newPos.z);
+
+            glm::vec3 vel = p.getVelocity();
+
+            glm::vec3 newVel = (glm::dot(vel,norm_vec))*norm_vec;
+            p.setVelocity((vel.x - (1+b)*newVel.x), (vel.y - (1+b)*newVel.y), (vel.z - (1+b)*newVel.z));
+
+        }
+        if(inNew)
+        {
+                    //std::cerr << "NOW INSIDE THE SPHERE" << std::endl;
+        }
+    }
+
+    //**********************
+    //**person collision****
+    //**********************
+    for (uint prs_i = 0; prs_i < current_people.size(); prs_i++)
+    {
+        if(prs_i != i)
+        {
+            Person other_prs = current_people[prs_i];
+            glm::vec3 distance_v = other_prs.getCurrentPosition() - p.getCurrentPosition();
+            float dist = glm::length(distance_v);
+            if(dist < 2*0.2f)
+            {
+                //collision
+                float b = p.getBouncing();
+
+                glm::vec3 o_dist_dir = -(glm::normalize(distance_v));
+
+                //1
+                glm::vec3 cur_pos = p.getCurrentPosition();
+                p.setPosition(p.getPreviousPosition());
+
+                glm::vec3 new_vel = p.getVelocity();
+                new_vel = -new_vel*o_dist_dir*b;
+                new_vel = glm::normalize(new_vel)*vel_multiplier;
+                p.setVelocity(new_vel);
+
+                if(current_method == Person::UpdateMethod::Verlet)
+                {
+                    p.setPreviousPosition(cur_pos);
+
+                }
+
+                //2
+//                        glm::vec3 interPoint = p.getCurrentPosition() + o_dist_dir/2.0f;
+//                        glm::vec3 norm_vec = glm::normalize(interPoint - other_prs.getCurrentPosition());
+//                        Plane tang_plane(interPoint, norm_vec);
+
+//                        //bouncing
+//                        glm::vec3 pos = p.getCurrentPosition();
+
+//                        glm::vec3 newPos = (glm::dot(pos,norm_vec) + tang_plane.dconst)*norm_vec;
+//                        p.setPosition(pos.x - (1+b)*newPos.x, pos.y, pos.z - (1+b)*newPos.z);
+
+//                        glm::vec3 vel = p.getVelocity();
+
+//                        glm::vec3 newVel = (glm::dot(vel,norm_vec))*norm_vec;
+//                        p.setVelocity((vel.x - (1+b)*newVel.x), vel.y, (vel.z - (1+b)*newVel.z));
+
+
+
+            }
+        }
+    }
+}
 
 

@@ -51,7 +51,12 @@ public:
     //A* path finding
     std::pair<int,int> getGoal();
     void setGoal(int i, int j);
+    void setOrientationAngle(float a);
+    float getOrientationAngle();
 
+
+
+    float orientation_angle = 0.0f;
 
 private:
     glm::vec3 m_currentPosition;
@@ -73,6 +78,7 @@ private:
 
     //A* path finding
     std::pair<int,int> goal;
+
 
 
 

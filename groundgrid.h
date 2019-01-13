@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <queue>
 
@@ -11,6 +12,7 @@ class groundgrid
 {
 
 //typedef struct {int a; int b;} cell;
+public:
     typedef std::pair<int,int> cellT;
 
 
@@ -69,6 +71,7 @@ public:
     int getColumnDimension();
     int getRowDimension();
     float getCellDim();
+//    float getCellDim(){return cell_dimension};
 
     int getCellType(int c, int r);
     glm::vec3 getCellPosition(int c, int r);
@@ -116,6 +119,7 @@ private:
     int col_dimension = 20;
     int row_dimension = 20;
     float cell_dimension = 1.0f;
+    float offset;
 
     int number_of_obstacles = 0;
     std::vector<cellT> obstaclesPositions;

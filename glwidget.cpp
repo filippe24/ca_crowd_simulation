@@ -470,8 +470,7 @@ void GLWidget::paintGL()
             for(uint obs = 0; obs < obstacles_poitions.size(); obs++)
             {
                 glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
-                float offset =(cell_dim_param)/2.0f;
-                programObstacles->setUniformValue("translation", QVector3D(obs_pos.x + offset ,2*radius, obs_pos.z + offset));
+                programObstacles->setUniformValue("translation", QVector3D(obs_pos.x ,2*radius, obs_pos.z));
                 meshObstacle.render(*this);
             }
             programObstacles->release();
@@ -490,8 +489,7 @@ void GLWidget::paintGL()
     //        std::vector<std::pair<int,int>> obstacles_poitions = prsan.ground.getGoalPosition();
     //                glm::vec3 obs_pos = prsan.ground.getCellPosition(obstacles_poitions[obs].first,obstacles_poitions[obs].second);
             glm::vec3 goal_pos = prsan.ground.getGoalPos();
-            float offset = cell_dim_param/2.0f;
-            programPath->setUniformValue("translation", QVector3D(goal_pos.x + offset, -21.0f, goal_pos.z + offset));
+            programPath->setUniformValue("translation", QVector3D(goal_pos.x, -21.0f, goal_pos.z));
             meshPath.render(*this);
         }
         //starting
@@ -500,8 +498,7 @@ void GLWidget::paintGL()
             programPath->bind();
             programPath->setUniformValue("color", QVector4D(0.2f, 0.8f, 0.2f, 0.2f));
             glm::vec3 goal_pos = prsan.ground.getStartPos();
-            float offset = cell_dim_param/2.0f;
-            programPath->setUniformValue("translation", QVector3D(goal_pos.x + offset, -21.0f, goal_pos.z + offset));
+            programPath->setUniformValue("translation", QVector3D(goal_pos.x, -21.0f, goal_pos.z));
             meshPath.render(*this);
         }
         //path
@@ -513,8 +510,7 @@ void GLWidget::paintGL()
             for(uint pth = 0; pth < path_positions.size(); pth++)
             {
                 glm::vec3 pth_pos = prsan.ground.getCellPosition(path_positions[pth].first,path_positions[pth].second);
-                float offset = cell_dim_param/2.0f;
-                programPath->setUniformValue("translation", QVector3D(pth_pos.x + offset, -21.01f, pth_pos.z + offset));
+                programPath->setUniformValue("translation", QVector3D(pth_pos.x, -22.0f, pth_pos.z ));
                 meshPath.render(*this);
             }
 
@@ -531,8 +527,7 @@ void GLWidget::paintGL()
             int c = prsan.ground.getCurrentCell(x,0.0f,z).first;
             int r = prsan.ground.getCurrentCell(x,0.0f,z).second;
             glm::vec3 prs_cell_pos = prsan.ground.getCellPosition(c,r);
-            float offset = cell_dim_param/2.0f;
-            programPath->setUniformValue("translation", QVector3D(prs_cell_pos.x + offset, -21.0f, prs_cell_pos.z + offset));
+            programPath->setUniformValue("translation", QVector3D(prs_cell_pos.x, -21.0f, prs_cell_pos.z));
             meshPath.render(*this);
 
         }
@@ -563,23 +558,15 @@ void GLWidget::paintGL()
 
 
         //compute angle between standard and direction
-
         for(uint i= 0; i<positions.size(); i= i+3)
         {
             QMatrix4x4 orientation;
             QVector3D pers_ax = QVector3D(0.0f, 1.0f, 0.0f);
             programPers->setUniformValue("color", QVector4D(0.75f, 0.8f, 0.9f, 1.0f));
             int pers = int((i+0.5f)/3);
-            float x,z = 0.0f;
-            prsan.getVelocity(pers,x,z);
-            float dot = x*0.0f + z*(1.0f);
-            float det = x*(1.0f) - z*0.0f;
-            float angle = atan2(det, dot);
-            angle = (180.0f*angle)/M_PI;
-//            float angle = atan2(x-0.0f, z+1.0f);
-//            cout << " person :" << i/3 <<" or "<< pers << endl;
-//            cout << " veocity vector x: " << x << ", z: " << z << "   and angle with basic : " << angle << endl;
-            orientation.rotate(angle,pers_ax);
+            float angle = prsan.computeOrienation(uint(pers));
+            float update_angle = prsan.updateOrientation(uint(pers),angle);
+            orientation.rotate(update_angle,pers_ax);
 
             QVector3D pers_pos;
             pers_pos.setX(positions[i]);
@@ -590,17 +577,6 @@ void GLWidget::paintGL()
             programPers->setUniformValue("rotation", rotation);
             programPers->setUniformValue("orientation", orientation);
 
-////            test
-//            if(i == 0 || i==3)
-//            {
-//                std::cout << std::endl;
-//                programPers->setUniformValue("color", QVector4D(0.8f, 0.3f, 0.3f+float(i/10.0f), 1.0f));
-//                std::pair<int,int> cell = ground.getCurrentCell(pers_pos.x(),pers_pos.y(), pers_pos.z());
-//                std::cout << " the i = " << i << " person, is in the cell: x = " << cell.first << "  z = " << cell.second << std::endl;
-//                glm::vec3 test_pos = ground.getCellPosition(cell.first, cell.second);
-//                std::cout << "  and the position check is x: " << test_pos.x << " == " << pers_pos.x() << "  and z : "<< test_pos.z << " == " << pers_pos.z() << std::endl;
-
-//            }
 
             for(int m = 0; m < numOfParts; m++)
                 personParts[m].render(*this);
@@ -820,11 +796,10 @@ void GLWidget::animate()
     else
     {
         if(positions.size() == 0)
-            prsan.addPerson(1);
+        {
+            initializeAnimation();
+        }
     }
-
-
-    //animateCal3dModel(current_time);
 
     update();
 }

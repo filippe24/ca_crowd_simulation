@@ -12,6 +12,8 @@ groundgrid::groundgrid()
 groundgrid::groundgrid(float dim)
 {
     cell_dimension = dim;
+    offset = cell_dimension/2.0f;
+
 }
 
 
@@ -93,8 +95,8 @@ glm::vec3 groundgrid::getCellPosition(int c, int r)
     int c_diff = c - center_c;
     int r_diff = r - center_r;
 
-    returned_vector.x = c_diff*cell_dimension;
-    returned_vector.z = r_diff*cell_dimension;
+    returned_vector.x = offset + c_diff*cell_dimension;
+    returned_vector.z = offset + r_diff*cell_dimension;
     return returned_vector;
 }
 
@@ -465,5 +467,8 @@ glm::vec3 groundgrid::getStartPos()
 
 std::vector<groundgrid::cellT> groundgrid::getPathPositions()
 {
-    return pathPositions;
+
+    std::vector<groundgrid::cellT> returned_poition = pathPositions;
+    std::reverse(returned_poition.begin(), returned_poition.end());
+    return returned_poition;
 }
