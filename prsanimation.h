@@ -56,6 +56,7 @@ public:
     float computeOrienation(uint pers);
     float orientationAngle(glm::vec3 velocity);
 
+    bool obstacle_on = false;
 private:
 
     bool fixed_y_on = true;
@@ -72,6 +73,8 @@ private:
     void collisionUpdatePos(Person &p, uint i);
     void planeCollisionDetection(Person &p);
     void personCollisionDetection(Person &p, uint i);
+    void obstacleCollisionDetection(Person &p);
+    bool isInside(glm::vec3 point, glm::vec3 center, bool twodimOn);
 
     //A*
     void pathUpdatePos(Person &p, uint i);
@@ -79,7 +82,7 @@ private:
 
     //STEERING~COLLISION~AVOIDANCE
     float MAX_SEE_AHEAD = 1.0f;
-    float MAX_AVOID_FORCE = 1.0f;
+    float MAX_AVOID_FORCE = 0.5f;
     void check_for_obstacles(Person &p, uint i);
 
 

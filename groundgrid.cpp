@@ -31,7 +31,7 @@ void groundgrid::createGrid(int col_dim, int row_dim)
         {
             float r = ( float(rand()) / (RAND_MAX));
             int new_val = 0;
-            if(r > 0.9f )
+            if(r > (1-percentage_of_obstacles) )
             {
                 new_val = 1;
                 number_of_obstacles++;
@@ -285,6 +285,8 @@ void groundgrid::computeAstar()
 
         std::cout<< "iteration number : " << iteration << std::endl;
         iteration ++;
+        if(iteration > 1000)
+            return;
 
         cellStruct current = openQueue.top();
         uint current_id = current.id;

@@ -491,7 +491,7 @@ void GLWidget::paintGL()
                     QVector3D diff = QVector3D(velocity.x,velocity.y,velocity.z);
                     program->setUniformValue("color", QVector4D(0.5f, 0.5f, 0.5f, 1.0f));
                     program->setUniformValue("particle_pos", par_pos+diff);
-                    program->setUniformValue("radius", radius/(2*(3-looks)));
+                    program->setUniformValue("radius", radius/(3*(3-looks)));
                     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
                 }
 
@@ -636,25 +636,27 @@ void GLWidget::paintGL()
 
 
         //following
-        for(uint i= 0; i<positions.size(); i= i+3)
+        if(!crowd_mode)
         {
-            programPath->bind();
+            for(uint i= 0; i<positions.size(); i= i+3)
+            {
+                programPath->bind();
 
-            programPath->setUniformValue("color", QVector4D(0.2f, 0.2f, 0.8f, 0.2f));
-            programPath->setUniformValue("obstacle", false);
-            float x = positions[i];
-            float z = positions[i+2];
-            int c = prsan.ground.getCurrentCell(x,0.0f,z).first;
-            int r = prsan.ground.getCurrentCell(x,0.0f,z).second;
-            glm::vec3 prs_cell_pos = prsan.ground.getCellPosition(c,r);
-            programPath->setUniformValue("translation", QVector3D(prs_cell_pos.x, -21.0f, prs_cell_pos.z));
-            meshPath.render(*this);
+                programPath->setUniformValue("color", QVector4D(0.2f, 0.2f, 0.8f, 0.2f));
+                programPath->setUniformValue("obstacle", false);
+                float x = positions[i];
+                float z = positions[i+2];
+                int c = prsan.ground.getCurrentCell(x,0.0f,z).first;
+                int r = prsan.ground.getCurrentCell(x,0.0f,z).second;
+                glm::vec3 prs_cell_pos = prsan.ground.getCellPosition(c,r);
+                programPath->setUniformValue("translation", QVector3D(prs_cell_pos.x, -21.0f, prs_cell_pos.z));
+                meshPath.render(*this);
+
+            }
+
+            programPath->release();
 
         }
-
-        programPath->release();
-
-
 
 
 
@@ -946,7 +948,7 @@ void GLWidget::initializeAnimation()
 
     prsan.setAvoidanceOn(avoidance_on);
     prsan.setCrowdMode(crowd_mode);
-    prsan.setPathMode(goal_cell_x,goal_cell_z,start_cell_x,start_cell_y);
+    prsan.setPathMode(goal_cell_x,goal_cell_y,start_cell_x,start_cell_y);
     prsan.setInitialVelocity(pers_i_velocity_x, pers_i_velocity_y, pers_i_velocity_z);
     prsan.setGravityPatam(gravity);
     prsan.initializeValues();

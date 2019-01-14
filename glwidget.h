@@ -72,6 +72,7 @@ public:
 
     void setAvoidanceOn(bool b);
 
+    bool obstacles_on = true;
 
 public slots:
     void animate();
@@ -150,14 +151,13 @@ private:
     //radius of PERSON
     bool fixed_y_on = true;
     float radius = 0.2f;
-    unsigned int num_people_per_frame = 10;
+    unsigned int num_people_per_frame = 15;
     float pers_lifetime = 30.0f;
     float pers_bouncing = 0.8f;
-    unsigned int max_num_of_people =  10;
+    unsigned int max_num_of_people =  20;
     glm::vec3 pers_initial_position = glm::vec3(0.0f, 0.3f, 0.0f);
 
     bool crowd_mode = false;
-    bool obstacles_on = true;
     bool avoidance_on = false;
 
 
@@ -204,11 +204,11 @@ private:
 
 
 
-
+public:
 
     //Path A*
     int goal_cell_x = 18;
-    int goal_cell_z = 5;
+    int goal_cell_y = 5;
     int start_cell_x = 1;
     int start_cell_y = 18;
 

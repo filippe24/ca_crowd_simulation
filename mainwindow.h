@@ -40,6 +40,18 @@ private slots:
 
     void on_avoidanceButton_clicked();
 
+    void on_obstaclePercentage_valueChanged(int value);
+
+    void on_start_x_valueChanged(int arg1);
+
+    void on_start_y_valueChanged(int arg1);
+
+    void on_goal_x_valueChanged(int arg1);
+
+    void on_goal_y_valueChanged(int arg1);
+
+    void on_obstaclesButton_clicked();
+
 private:
 	Ui::MainWindow *ui;
 };

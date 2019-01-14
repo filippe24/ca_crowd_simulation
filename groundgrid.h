@@ -65,7 +65,7 @@ public:
         return uint(cell.first*col_dimension + cell.second);
     }
 
-
+    float percentage_of_obstacles = 0.1f;
 
     //getter
     int getColumnDimension();
